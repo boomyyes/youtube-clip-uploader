@@ -3,7 +3,7 @@
 ## Goal
 A website where multiple people log in and upload video clips. Clips are automatically given a title and description, then uploaded to ONE shared YouTube channel (owned by the project owner) through the YouTube Data API v3.
 
-Full background and research are in `docs/conversation.md`. Read it before starting.
+Full background and research are in `docs/conversations/conversation.md` (local only, gitignored). Read it before starting.
 
 ## Planned architecture
 1. **Site login system**: each user has an account (email/password or "Sign in with Google"). Options: Auth.js, Firebase Auth, Supabase Auth, or Clerk.
