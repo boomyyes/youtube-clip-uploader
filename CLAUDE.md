@@ -9,7 +9,7 @@ Full background and research are in `docs/conversations/conversation.md` (local 
 1. **Site login system**: each user has an account (email/password or "Sign in with Google"). Options: Auth.js, Firebase Auth, Supabase Auth, or Clerk.
 2. **One-time YouTube OAuth 2.0 connection** for the owner's channel. Store the refresh token securely on the server only. Never expose the client secret or token to the browser.
 3. **Upload flow**: user uploads a clip to the site, which stores it temporarily (S3 or similar). A background job then sends it to YouTube with `videos.insert` using the resumable upload protocol.
-4. **Auto title and description**: generated from a template (e.g. "Clip by {username} - {date}") or from user input. Optionally use the Claude API to write them from user input or a transcript.
+4. **Auto title**: sequential template `{username}'s clip in {game} #{n}` (e.g. "Boomy's clip in Valorant #3"). The user picks the game at upload. `n` counts per user per game and is assigned in the DB under a unique constraint on (user, game, n), so two uploads can't get the same number. No AI: it adds cost and rate limits for no gain.
 5. **Approval queue**: the owner approves each clip before it is sent to YouTube (see Clip lifecycle).
 
 ## Suggested stack (not yet decided; confirm with the owner)
@@ -39,7 +39,7 @@ Must run at $0. Use only free tiers and design around their limits.
 ## Open questions for the owner
 - Which stack to use?
 - Shared channel (current plan) or per-user YouTube accounts? The per-user option avoids shared-channel moderation risk but is a different product.
-- Auto-generated metadata: templates only, or Claude API?
+- Auto-generated metadata: decided, sequential template, no AI.
 - Approval step before publishing: yes (recommended) or no?
 
 ## Clip lifecycle
@@ -74,7 +74,7 @@ One `status` field with fixed values:
 - A fake YouTube client for local development, so it burns no quota.
 
 ## v1 scope cuts
-- Templates for titles and descriptions. The Claude API comes later.
+- Sequential template titles only. No AI (Claude or Gemini).
 - One login method.
 - A Postgres jobs table instead of a queue service.
 
