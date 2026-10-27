@@ -19,6 +19,9 @@ Full background and research are in `docs/conversations/conversation.md` (local 
 - Storage: S3-compatible temporary storage
 - Queue: a background job queue for uploads
 
+## Budget
+Must run at $0. Use only free tiers and design around their limits.
+
 ## Critical constraints (YouTube API)
 - **Audit required for public videos.** Since July 28, 2020, videos uploaded through an unaudited Google Cloud project are forced to private, and this cannot be appealed per video. The project must pass the YouTube API Compliance Audit. Form: https://support.google.com/youtube/contact/yt_api_form (choose "Quota Extension Request" to also raise quota). Expect at least a few days, likely weeks. The audit needs a working app, a privacy policy, terms of service, and a screencast of API usage.
 - **Make sure the audited Cloud project is the one the app uses.**
