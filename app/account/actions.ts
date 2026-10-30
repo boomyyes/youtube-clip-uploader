@@ -24,11 +24,11 @@ export async function deleteAccount(f: FormData) {
   if (p.role === "owner") redirect("/account?msg=" + encodeURIComponent("The owner account can't be deleted here; it would leave the site without an admin."));
 
   const db = admin();
-  // A clip mid-upload could still be published after the account is gone, so wait for it.
-  const { count } = await db.from("clips").select("id", { count: "exact", head: true }).eq("user_id", p.id).eq("status", "uploading");
-  if (count) redirect("/account?msg=" + encodeURIComponent("One of your clips is uploading to YouTube right now. Try again in a few minutes."));
-  // Stop the worker from claiming approved clips between here and the delete.
+  // Cancel approved clips first so the worker can't claim one after the check below (it only claims 'approved').
   await db.from("clips").update({ status: "rejected", reject_reason: "Account deleted" }).eq("user_id", p.id).eq("status", "approved");
+  // A clip already mid-upload could still be published after the account is gone, so wait for it.
+  const { count } = await db.from("clips").select("id", { count: "exact", head: true }).eq("user_id", p.id).eq("status", "uploading");
+  if (count) redirect("/account?msg=" + encodeURIComponent("One of your clips is uploading to YouTube right now. Your other approved clips were cancelled; try deleting again in a few minutes."));
   const { data: clips } = await db.from("clips").select("storage_path").eq("user_id", p.id);
   for (const c of clips ?? []) await remove(c.storage_path); // missing files are fine
   // upload_log is kept (with the uploader's email) for 12 months for copyright/abuse complaints; see the privacy policy.
