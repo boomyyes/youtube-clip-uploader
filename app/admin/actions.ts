@@ -42,7 +42,7 @@ export async function rejectClip(f: FormData) {
   const reason = String(f.get("reason") ?? "").trim().slice(0, 300) || null;
   const { data, error } = await db
     .from("clips")
-    .update({ status: "rejected", reject_reason: reason })
+    .update({ status: "rejected", reject_reason: reason, seq: null }) // frees the number for the next upload
     .eq("id", id(f))
     .eq("status", "queued")
     .select("storage_path")

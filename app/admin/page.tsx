@@ -2,11 +2,15 @@ import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
 import { approveClip, approveUser, disconnectYouTube, rejectClip, retryClip } from "./actions";
+import Icon from "../pixel-icon";
+import { Notice, PageHeader, StatusPill } from "../ui";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
   youtube_video_id: string | null; last_error: string | null; created_at: string; profiles: { display_name: string } | null;
 };
+
+const initial = (name?: string) => (name ?? "?").charAt(0).toUpperCase();
 
 export default async function Admin({ searchParams }: { searchParams: Promise<{ msg?: string; yt?: string }> }) {
   await requireUser(true);
@@ -32,93 +36,148 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const preview = new Map(
     await Promise.all(queued.map(async (c) => [c.storage_path, { url: await presignGet(c.storage_path), etag: (await head(c.storage_path))?.etag }] as const)),
   );
+  const pipeline = [...by("approved"), ...by("uploading"), ...by("failed")];
 
   return (
-    <>
-      <h1>Admin</h1>
-      {(msg || yt) && <p role="status">{msg ?? yt}</p>}
+    <div className="content-page admin-page">
+      <PageHeader eyebrow="OWNER CONSOLE / 01" title="Admin">
+        Approve the crew, clear the review queue and keep the YouTube pipeline moving.
+      </PageHeader>
+      {(msg || yt) && <Notice tone="success">{msg ?? yt}</Notice>}
 
-      <section aria-labelledby="yt">
-        <h2 id="yt">YouTube channel</h2>
-        {conn ? (
-          <p>Connected to <strong>{conn.channel_title}</strong>.</p>
-        ) : (
-          <p className="error">Not connected. Uploads are paused until you connect (or reconnect, if access expired).</p>
-        )}
-        <p><a href="/api/youtube/connect">{conn ? "Reconnect YouTube" : "Connect YouTube"}</a></p>
-        {conn && (
-          <form action={disconnectYouTube}>
-            <button type="submit">Disconnect YouTube</button> (revokes this site&apos;s access and deletes the stored token and channel details)
-          </form>
-        )}
-      </section>
-
-      <section aria-labelledby="users">
-        <h2 id="users">Accounts waiting for approval ({users?.length ?? 0})</h2>
-        {users?.map((u) => (
-          <form key={u.id} action={approveUser}>
-            <input type="hidden" name="id" value={u.id} />
-            {u.display_name} ({u.email}) <button type="submit">Approve {u.display_name}</button>
-          </form>
-        ))}
-      </section>
-
-      <section aria-labelledby="review">
-        <h2 id="review">Clips to review ({queued.length})</h2>
-        {waiting.length > 0 && <p>{waiting.length} newer clip(s) become reviewable 5 minutes after upload.</p>}
-        {queued.map((c) => (
-          <article key={c.id} style={{ borderBottom: "1px solid #ddd", paddingBottom: 12 }}>
-            <p><strong>{c.profiles?.display_name}</strong> · {c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</p>
-            {c.note && <p>Note: {c.note}</p>}
-            {preview.get(c.storage_path)?.etag ? (
-              <video controls preload="metadata" src={preview.get(c.storage_path)!.url} aria-label={`Clip by ${c.profiles?.display_name}`} />
-            ) : (
-              <p className="error">File missing from storage. Reject this clip.</p>
-            )}
-            <form action={approveClip}>
-              <input type="hidden" name="id" value={c.id} />
-              <input type="hidden" name="etag" value={preview.get(c.storage_path)?.etag ?? ""} />
-              <button type="submit" aria-label={`Approve ${c.game} clip by ${c.profiles?.display_name}`}>Approve</button>
+      <section className="admin-section" aria-labelledby="yt">
+        <div className="section-heading">
+          <div><span className="panel-kicker">CHANNEL CONNECTION</span><h2 id="yt">YouTube channel</h2></div>
+          <Icon name="youtube" size={20} />
+        </div>
+        <div className={`connection-card ${conn ? "" : "is-disconnected"}`}>
+          <div className="connection-icon"><Icon name="youtube" size={24} /></div>
+          <div className="connection-copy">
+            <strong>{conn ? `Connected: ${conn.channel_title}` : "Not connected, uploads paused"}</strong>
+            <span>{conn ? "Approved clips upload to this channel." : "Connect (or reconnect, if access expired) to resume publishing."}</span>
+          </div>
+          <a href="/api/youtube/connect" className={`button ${conn ? "button-ghost" : "button-primary"}`}>
+            <Icon name="link" /> {conn ? "Reconnect" : "Connect YouTube"}
+          </a>
+          {conn && (
+            <form action={disconnectYouTube} className="inline-form">
+              <button type="submit" className="button button-secondary" title="Revokes this site's access and deletes the stored token and channel details">
+                Disconnect
+              </button>
             </form>
-            <form action={rejectClip}>
-              <input type="hidden" name="id" value={c.id} />
-              <label htmlFor={`reason-${c.id}`}>Reason for rejecting (shown to the uploader)</label>
-              <input id={`reason-${c.id}`} name="reason" maxLength={300} />
-              <button type="submit" aria-label={`Reject ${c.game} clip by ${c.profiles?.display_name}`}>Reject</button>
-            </form>
-          </article>
-        ))}
+          )}
+        </div>
       </section>
 
-      <section aria-labelledby="pipeline">
-        <h2 id="pipeline">Upload pipeline</h2>
-        <p>Approved clips upload while the worker runs on your PC (<code>npm run worker</code>).</p>
-        <table>
-          <thead><tr><th>Title</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody>
-            {[...by("approved"), ...by("uploading"), ...by("failed")].map((c) => (
-              <tr key={c.id}>
-                <td>{c.title}</td>
-                <td>{c.status}{c.last_error && <div className="error">{c.last_error}</div>}</td>
-                <td>
-                  {c.status === "failed" && (
-                    <form action={retryClip}><input type="hidden" name="id" value={c.id} /><button type="submit" aria-label={`Retry ${c.title}`}>Retry</button></form>
-                  )}
-                </td>
-              </tr>
+      <section className="admin-section" aria-labelledby="users">
+        <div className="section-heading">
+          <div><span className="panel-kicker">INBOX / 02</span><h2 id="users">Accounts waiting for approval <span className="count-badge">{users?.length ?? 0}</span></h2></div>
+          <Icon name="users" size={20} />
+        </div>
+        {users?.length ? (
+          <div className="account-approval-list">
+            {users.map((u) => (
+              <form key={u.id} action={approveUser} className="approval-row">
+                <input type="hidden" name="id" value={u.id} />
+                <div className="approval-avatar" aria-hidden="true">{initial(u.display_name)}</div>
+                <div className="approval-person"><strong>{u.display_name}</strong><span>{u.email}</span></div>
+                <span className="approval-date">Joined {new Date(u.created_at).toLocaleDateString("en-IN")}</span>
+                <button type="submit" className="button button-primary" aria-label={`Approve ${u.display_name}`}><Icon name="check" /> Approve</button>
+              </form>
             ))}
-          </tbody>
-        </table>
-        <h3>Recently uploaded</h3>
-        <ul>
-          {recent?.map((c) => (
-            <li key={c.id}>
-              {c.title} · <a href={`https://youtu.be/${c.youtube_video_id}`}>watch</a> ·{" "}
-              <a href={`https://studio.youtube.com/video/${c.youtube_video_id}/edit`}>Studio</a>
-            </li>
-          ))}
-        </ul>
+          </div>
+        ) : <p className="muted">Nobody waiting.</p>}
       </section>
-    </>
+
+      <section className="admin-section" aria-labelledby="review">
+        <div className="section-heading">
+          <div><span className="panel-kicker">REVIEW QUEUE / 03</span><h2 id="review">Clips to review <span className="count-badge">{queued.length}</span></h2></div>
+          <Icon name="clips" size={20} />
+        </div>
+        {waiting.length > 0 && <Notice tone="warning">{waiting.length} newer clip(s) become reviewable 5 minutes after upload.</Notice>}
+        {queued.length === 0 && <p className="muted">Queue is clear.</p>}
+        <div className="review-grid">
+          {queued.map((c) => {
+            const pv = preview.get(c.storage_path);
+            const who = c.profiles?.display_name;
+            return (
+              <article key={c.id} className="review-card">
+                <div className="review-meta">
+                  <span className="user-avatar small" aria-hidden="true">{initial(who)}</span>
+                  <div><strong>{who}</strong><span>{c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</span></div>
+                  <StatusPill status={c.status} />
+                </div>
+                {pv?.etag ? (
+                  <video className="review-video" controls preload="metadata" src={pv.url} aria-label={`Clip by ${who}`} />
+                ) : (
+                  <div className="missing-preview"><Icon name="alert" size={23} /><strong>File missing from storage</strong><span>Reject this clip.</span></div>
+                )}
+                {c.note && <div className="review-note"><span>UPLOADER NOTE</span><p>{c.note}</p></div>}
+                <form action={rejectClip} id={`reject-${c.id}`}>
+                  <input type="hidden" name="id" value={c.id} />
+                  <div className="reject-reason">
+                    <label htmlFor={`reason-${c.id}`}>Reject reason <span className="optional">Shown to the uploader</span></label>
+                    <input id={`reason-${c.id}`} name="reason" maxLength={300} placeholder="Tell the uploader what to fix" />
+                  </div>
+                </form>
+                <div className="review-actions">
+                  <form action={approveClip} className="inline-form">
+                    <input type="hidden" name="id" value={c.id} />
+                    <input type="hidden" name="etag" value={pv?.etag ?? ""} />
+                    <button type="submit" className="button button-primary" aria-label={`Approve ${c.game} clip by ${who}`}><Icon name="check" /> Approve</button>
+                  </form>
+                  <button type="submit" form={`reject-${c.id}`} className="button button-secondary" aria-label={`Reject ${c.game} clip by ${who}`}>Reject</button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="admin-section" aria-labelledby="pipeline">
+        <div className="section-heading">
+          <div><span className="panel-kicker">PIPELINE / 04</span><h2 id="pipeline">Upload pipeline</h2></div>
+          <Icon name="refresh" size={20} />
+        </div>
+        <p className="muted">Approved clips upload every 6 hours (GitHub Actions), or right away with <code>npm run worker</code>.</p>
+        {pipeline.length > 0 && (
+          <div className="pipeline-table" role="table" aria-label="Upload pipeline">
+            <div className="pipeline-head" role="row">
+              <span role="columnheader">Clip</span><span role="columnheader">Status</span><span role="columnheader">Error</span>
+              <span role="columnheader"><span className="sr-only">Action</span></span>
+            </div>
+            {pipeline.map((c) => (
+              <div className="pipeline-row" role="row" key={c.id}>
+                <div role="cell"><strong>{c.title}</strong><span>{c.game} · {c.profiles?.display_name}</span></div>
+                <span role="cell"><StatusPill status={c.status} /></span>
+                <span role="cell" className={c.last_error ? "error-text" : "muted"}>{c.last_error ?? "—"}</span>
+                <span role="cell">
+                  {c.status === "failed" && (
+                    <form action={retryClip}>
+                      <input type="hidden" name="id" value={c.id} />
+                      <button type="submit" className="button button-secondary" aria-label={`Retry ${c.title}`}><Icon name="refresh" size={15} /> Retry</button>
+                    </form>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="admin-section recent-section" aria-labelledby="recent">
+        <div className="section-heading">
+          <div><span className="panel-kicker">HISTORY / 05</span><h2 id="recent">Recently uploaded</h2></div>
+          <Icon name="star" size={20} />
+        </div>
+        <div className="recent-list">
+          {recent?.map((c, i) => (
+            <a key={c.id} href={`https://studio.youtube.com/video/${c.youtube_video_id}/edit`} title="Open in YouTube Studio">
+              <span>{String(i + 1).padStart(2, "0")}</span>{c.title}<Icon name="link" size={14} />
+            </a>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }

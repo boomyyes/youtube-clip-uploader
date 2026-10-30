@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { CONTACT_EMAIL } from "@/lib/games";
+import Icon from "../pixel-icon";
+import { PageHeader } from "../ui";
 
 export const metadata = { title: "Privacy Policy · Clip Uploader" };
 
@@ -7,9 +9,16 @@ const UPDATED = "30 October 2026";
 
 export default function Privacy() {
   return (
-    <>
-      <h1>Privacy Policy</h1>
-      <p>Last updated: {UPDATED}</p>
+    <div className="legal-page">
+      <PageHeader eyebrow="PUBLIC DOCUMENT / 01" title="Privacy Policy">Last updated: {UPDATED}</PageHeader>
+      <div className="legal-layout">
+        <aside className="legal-aside">
+          <div className="legal-aside-icon"><Icon name="info" size={20} /></div>
+          <strong>Read before you sign in</strong>
+          <p>How clip files, account data and YouTube publishing work.</p>
+          <Link href="/terms" className="text-link">Read Terms →</Link>
+        </aside>
+        <article className="legal-copy">
       <p>
         Clip Uploader (&quot;the site&quot;, &quot;we&quot;) is run by Avanish Wankhede, the owner of the YouTube channel the
         site publishes to. This policy explains what we collect, why, who handles it, and how you can delete it. You must
@@ -140,6 +149,8 @@ export default function Privacy() {
 
       <h2>12. Contact</h2>
       <p>Privacy questions or complaints: {CONTACT_EMAIL}</p>
-    </>
+        </article>
+      </div>
+    </div>
   );
 }

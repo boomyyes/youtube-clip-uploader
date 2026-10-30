@@ -7,5 +7,9 @@ export default function SignInButton() {
       provider: "google",
       options: { redirectTo: `${window.location.origin}/auth/callback` },
     });
-  return <button onClick={signIn}>Sign in with Google</button>;
+  return (
+    <button type="button" className="button button-primary google-button" onClick={signIn}>
+      <span className="google-g" aria-hidden="true">G</span>Sign in with Google<span aria-hidden="true">→</span>
+    </button>
+  );
 }

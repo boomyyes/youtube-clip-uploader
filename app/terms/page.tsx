@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { CONTACT_EMAIL } from "@/lib/games";
+import Icon from "../pixel-icon";
+import { PageHeader } from "../ui";
 
 export const metadata = { title: "Terms of Service · Clip Uploader" };
 
@@ -7,9 +9,16 @@ const UPDATED = "30 October 2026";
 
 export default function Terms() {
   return (
-    <>
-      <h1>Terms of Service</h1>
-      <p>Last updated: {UPDATED}</p>
+    <div className="legal-page">
+      <PageHeader eyebrow="PUBLIC DOCUMENT / 02" title="Terms of Service">Last updated: {UPDATED}</PageHeader>
+      <div className="legal-layout">
+        <aside className="legal-aside">
+          <div className="legal-aside-icon"><Icon name="info" size={20} /></div>
+          <strong>Read before you sign in</strong>
+          <p>How clip files, account data and YouTube publishing work.</p>
+          <Link href="/privacy" className="text-link">Read Privacy →</Link>
+        </aside>
+        <article className="legal-copy">
       <p>
         These terms govern your use of Clip Uploader (&quot;the site&quot;), run by Avanish Wankhede (&quot;the owner&quot;).
         By signing in you agree to these terms and to our <Link href="/privacy">Privacy Policy</Link>. If you don&apos;t
@@ -92,6 +101,8 @@ export default function Terms() {
 
       <h2>11. Contact</h2>
       <p>{CONTACT_EMAIL}</p>
-    </>
+        </article>
+      </div>
+    </div>
   );
 }
