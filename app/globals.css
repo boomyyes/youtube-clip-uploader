@@ -1,0 +1,8 @@
+/* Functional styles only; design comes later. */
+body { font-family: system-ui, sans-serif; max-width: 860px; margin: 0 auto; padding: 16px; line-height: 1.5; }
+nav { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; border-bottom: 1px solid #ccc; padding-bottom: 8px; margin-bottom: 16px; }
+label { display: block; margin: 12px 0 4px; }
+table { border-collapse: collapse; width: 100%; }
+th, td { border-bottom: 1px solid #ddd; padding: 6px; text-align: left; vertical-align: top; }
+video { max-width: 100%; max-height: 360px; }
+.error { color: #b00020; }

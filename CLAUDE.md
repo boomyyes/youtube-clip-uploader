@@ -8,17 +8,18 @@ Background notes may be in `docs/conversations/` (local only, gitignored). Every
 ## Planned architecture
 1. **Site login system**: Sign in with Google only, via Supabase Auth. New accounts wait until the owner approves them (see Security).
 2. **One-time YouTube OAuth 2.0 connection** for the owner's channel. Store the refresh token securely on the server only. Never expose the client secret or token to the browser.
-3. **Upload flow**: the browser uploads the clip straight to Supabase Storage (temporary). A worker then sends it to YouTube with `videos.insert` using the resumable upload protocol.
+3. **Upload flow**: the browser uploads the clip straight to R2 (temporary). A worker then sends it to YouTube with `videos.insert` using the resumable upload protocol.
 4. **Auto title**: sequential template `{username}'s clip in {game} #{n}` (e.g. "Boomy's clip in Valorant #3"). The user picks the game at upload. `n` counts per user per game and is assigned in the DB under a unique constraint on (user, game, n), so two uploads can't get the same number. `n` is assigned at approval, so rejected clips leave no gaps. No AI: it adds cost and rate limits for no gain.
    **Description**: template `Uploaded by {username} on {date}`, plus the uploader's optional note.
 5. **Approval queue**: the owner approves each clip before it is sent to YouTube (see Clip lifecycle).
 
 ## Stack (decided)
 - Next.js (frontend + API routes)
-- Supabase free plan: Auth (Google), Postgres (users, clips), Storage (temporary clips)
-- Upload worker: a Node script run on the owner's PC (free hosting would kill long uploads). Uploads happen only while it runs.
+- Supabase free plan: Auth (Google), Postgres (users, clips)
+- Cloudflare R2 free tier (10 GB, no egress fees): temporary clip storage, up to 2 GB per clip
+- Upload worker (`worker/index.mjs`): GitHub Actions runs it with `--once` every 6 hours (`.github/workflows/upload.yml`, secrets in the repo settings). `npm run worker` on the owner's PC still works for an instant upload. Free web hosts can't run it (function time limits).
 - One shared YouTube channel (the owner's).
-- Check Supabase free-plan limits (per-file size, total storage, pause after inactivity) before setting upload limits.
+- Supabase free projects pause after a week of inactivity; open the dashboard to resume.
 
 ## Budget
 Must run at $0. Use only free tiers and design around their limits.
@@ -38,13 +39,13 @@ Must run at $0. Use only free tiers and design around their limits.
 
 ## Clip lifecycle
 One `status` field with fixed values:
-`uploaded → queued → approved → uploading → on_youtube → public`, plus `rejected` and `failed`.
+`queued → approved → uploading → on_youtube → public`, plus `rejected` and `failed`. A clip row is created only after its file is in Storage, so it starts at `queued`.
 - The owner approves **before** the YouTube upload (reviewing the file on our site). This saves quota on clips that get rejected. It replaces "upload private, then switch".
 - While the audit is pending, `on_youtube` videos stay private. Tell users this in the UI.
 
 ## Upload job
 - No jobs table and no queue service: the `clips` row is the job, so status lives in one place.
-- The worker claims a clip with one atomic update (`UPDATE clips SET status='uploading' WHERE id=$1 AND status='approved'`), so two workers can never upload the same clip.
+- The worker claims a clip with one atomic update (`UPDATE clips SET status='uploading', claimed_at=now() WHERE id=$1 AND status='approved'`), so two workers can never upload the same clip. On start, a worker only takes back uploads claimed over 6 hours ago, never one the other worker is still sending.
 - Save the resumable session URL and the bytes sent on the clip row. On failure, resume with backoff. Give up and restart after the session expires (~1 week).
 - `quotaExceeded`: hold the queue until the daily reset (midnight Pacific time). Do not mark clips failed.
 - `invalid_grant` (token revoked): pause the queue and alert the owner.
@@ -53,10 +54,13 @@ One `status` field with fixed values:
 - Encrypt the refresh token at rest with AES-256-GCM (`TOKEN_ENC_KEY`). Never store it in a plain DB column.
 - New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue.
 
-## Storage
-- Browsers upload straight to Supabase Storage with signed upload URLs (short-lived upload links). Big files never pass through the app server.
-- Limit file size and type before the upload starts.
-- Delete the stored file once YouTube confirms the video. A daily cleanup in the worker deletes leftovers older than 7 days.
+## Storage (Cloudflare R2)
+- Browsers upload straight to R2 with presigned PUT URLs that pin the exact Content-Type and Content-Length. Big files never pass through the app server. The server re-checks size and type with a HEAD before recording the clip.
+- Limit: 2 GB per clip, MP4/MOV/WebM/MKV (`lib/games.ts`).
+- The worker reads clips from R2 in 8 MB ranges and sends them to YouTube in matching chunks, so memory use stays flat.
+- Delete the file once YouTube has the video, or when the clip is rejected.
+- Abandoned uploads (file sent, clip never recorded) are removed by an R2 lifecycle rule: delete objects older than 30 days. Clips still waiting for review after 30 days lose their file too, so review within a month.
+- The R2 bucket needs a CORS rule allowing PUT from the site's origin (and GET for previews).
 
 ## UX and accessibility
 - A "My clips" page: each clip's status, plus the reason when it is rejected.
@@ -65,7 +69,10 @@ One `status` field with fixed values:
 
 ## Dev setup
 - Commit `.env.example`. All other `.env*` files are gitignored.
-- A fake YouTube client for local development, so it burns no quota.
+- `npm run dev` (site), `npm run worker` (uploads, keeps running), `npm run worker:once` (what Actions runs), `npm run worker:fake` (no YouTube calls), `npm test`.
+- API approval steps: `docs/api-audit-checklist.md`.
+- Next.js 16: middleware is `proxy.ts`; read `node_modules/next/dist/docs/` before using unfamiliar APIs.
+- DB schema: `supabase/migrations/0001_init.sql`, run in the Supabase SQL editor.
 
 ## v1 scope cuts
 - Sequential template titles only. No AI (Claude or Gemini).
@@ -73,4 +80,4 @@ One `status` field with fixed values:
 - No queue service: the clips table drives the worker.
 
 ## Status
-No code yet. Google Cloud (YouTube API, OAuth clients, quota) and Supabase (project, Google login) are set up. Piece 1 (setup, login, YouTube connection) is planned in `docs/plan-piece-1.md` (2026-10-28).
+Functional v1 built (2026-10-30): login + approval, YouTube connection, clip upload, My clips, admin review queue, upload worker, privacy/terms drafts. No design yet. Before the audit: fill `CONTACT_EMAIL` in `lib/games.ts` and have the privacy/terms text reviewed.
