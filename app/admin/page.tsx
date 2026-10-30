@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import { presignGet } from "@/lib/r2.mjs";
-import { approveClip, approveUser, publishClip, rejectClip, retryClip } from "./actions";
+import { head, presignGet } from "@/lib/r2.mjs";
+import { approveClip, approveUser, rejectClip, retryClip } from "./actions";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
@@ -12,19 +12,23 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   await requireUser(true);
   const { msg, yt } = await searchParams;
   const db = admin();
-  const [{ data: conn }, { data: users }, { data: clips }] = await Promise.all([
+  const [{ data: conn }, { data: users }, { data: clips }, { data: recent }] = await Promise.all([
     db.from("youtube_connection").select("channel_title, revoked, updated_at").eq("id", 1).maybeSingle(),
     db.from("profiles").select("id, display_name, email, created_at").eq("approved", false).order("created_at"),
     db.from("clips")
       .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, profiles(display_name)")
-      .in("status", ["queued", "approved", "uploading", "failed", "on_youtube"])
+      .in("status", ["queued", "approved", "uploading", "failed"])
       .order("created_at")
       .returns<Clip[]>(),
+    db.from("clips").select("id, title, youtube_video_id").eq("status", "on_youtube").order("uploaded_at", { ascending: false }).limit(10),
   ]);
   const by = (s: string) => (clips ?? []).filter((c) => c.status === s);
   const queued = by("queued");
   // One-hour preview links for the review queue.
-  const preview = new Map(await Promise.all(queued.map(async (c) => [c.storage_path, await presignGet(c.storage_path)] as const)));
+  // The ETag goes into the Approve form, so approval is tied to the version the owner was shown.
+  const preview = new Map(
+    await Promise.all(queued.map(async (c) => [c.storage_path, { url: await presignGet(c.storage_path), etag: (await head(c.storage_path))?.etag }] as const)),
+  );
 
   return (
     <>
@@ -57,9 +61,14 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <article key={c.id} style={{ borderBottom: "1px solid #ddd", paddingBottom: 12 }}>
             <p><strong>{c.profiles?.display_name}</strong> · {c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</p>
             {c.note && <p>Note: {c.note}</p>}
-            {preview.get(c.storage_path) && <video controls preload="metadata" src={preview.get(c.storage_path)!} aria-label={`Clip by ${c.profiles?.display_name}`} />}
+            {preview.get(c.storage_path)?.etag ? (
+              <video controls preload="metadata" src={preview.get(c.storage_path)!.url} aria-label={`Clip by ${c.profiles?.display_name}`} />
+            ) : (
+              <p className="error">File missing from storage. Reject this clip.</p>
+            )}
             <form action={approveClip}>
               <input type="hidden" name="id" value={c.id} />
+              <input type="hidden" name="etag" value={preview.get(c.storage_path)?.etag ?? ""} />
               <button type="submit" aria-label={`Approve ${c.game} clip by ${c.profiles?.display_name}`}>Approve</button>
             </form>
             <form action={rejectClip}>
@@ -78,7 +87,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
         <table>
           <thead><tr><th>Title</th><th>Status</th><th>Action</th></tr></thead>
           <tbody>
-            {[...by("approved"), ...by("uploading"), ...by("failed"), ...by("on_youtube")].map((c) => (
+            {[...by("approved"), ...by("uploading"), ...by("failed")].map((c) => (
               <tr key={c.id}>
                 <td>{c.title}</td>
                 <td>{c.status}{c.last_error && <div className="error">{c.last_error}</div>}</td>
@@ -86,18 +95,20 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   {c.status === "failed" && (
                     <form action={retryClip}><input type="hidden" name="id" value={c.id} /><button type="submit" aria-label={`Retry ${c.title}`}>Retry</button></form>
                   )}
-                  {c.status === "on_youtube" && (
-                    <form action={publishClip}>
-                      <input type="hidden" name="id" value={c.id} />
-                      <a href={`https://studio.youtube.com/video/${c.youtube_video_id}/edit`}>Check in Studio</a>{" "}
-                      <button type="submit" aria-label={`Make ${c.title} public`}>Make public</button>
-                    </form>
-                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
+        <h3>Recently uploaded</h3>
+        <ul>
+          {recent?.map((c) => (
+            <li key={c.id}>
+              {c.title} · <a href={`https://youtu.be/${c.youtube_video_id}`}>watch</a> ·{" "}
+              <a href={`https://studio.youtube.com/video/${c.youtube_video_id}/edit`}>Studio</a>
+            </li>
+          ))}
+        </ul>
       </section>
     </>
   );

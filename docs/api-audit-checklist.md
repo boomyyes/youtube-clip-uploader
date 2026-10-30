@@ -46,9 +46,9 @@ Record in one take, on the production site, with the browser address bar visible
 - [ ] Uploading a clip (game, note, progress bar).
 - [ ] The owner previewing the clip and approving it; the generated title.
 - [ ] The owner clicking Connect YouTube, the full Google consent screen with both scopes visible, and returning to "Connected: <channel>".
-- [ ] The worker uploading (GitHub Actions "Run workflow", or `npm run worker`), then the video in YouTube Studio as private, category Gaming, not made for kids.
+- [ ] The worker uploading (GitHub Actions "Run workflow", or `npm run worker`), then the video in YouTube Studio: category Gaming, not made for kids.
 - [ ] Rejecting a clip and the uploader seeing the reason in My clips.
-- [ ] "Make public" (explain it works after the audit).
+- [ ] Explain that clips upload as public because the owner approved them first, and that YouTube keeps them private until this audit passes.
 - [ ] Mention that clips are deleted from storage after upload and that every upload is logged.
 
 ## 5. Audit form
@@ -58,7 +58,7 @@ Form: https://support.google.com/youtube/contact/yt_api_form
 - [ ] Reason: **YouTube API Services Audit and Quota Extension**. The current quota (100 uploads/day) is plenty, so ask only for the audit unless the form requires a quota number.
 - [ ] Google Cloud **project number** (Cloud dashboard → Project info). It must be the project this app uses.
 - [ ] Organization/developer details and contact email.
-- [ ] Client type: public web app; YouTube API services used: Data API v3 (`videos.insert`, `videos.update`, `channels.list`).
+- [ ] Client type: public web app; YouTube API services used: Data API v3 (`videos.insert`, `channels.list`).
 - [ ] Use case, in plain words: "A small private community submits gameplay clips. The channel owner reviews every clip before it is uploaded to their own channel. Users never get YouTube access; only the owner's channel is used."
 - [ ] Moderation: owner approval of every account and every clip, terms forbidding copyrighted and harmful content, rejection with reasons, upload audit log.
 - [ ] Links: site URL, privacy policy, terms, screencast.
@@ -67,6 +67,6 @@ Form: https://support.google.com/youtube/contact/yt_api_form
 
 - [ ] Keep the site running and unchanged until the review ends; reviewers may test it.
 - [ ] Answer emails from the YouTube API Services team quickly.
-- [ ] Once approved: upload a test clip and confirm "Make public" works.
+- [ ] Once approved: upload a test clip and confirm it is public without touching Studio.
 - [ ] Earlier clips that were uploaded while locked stay private. To make one public, delete it in YouTube Studio and have it submitted again (the site has no re-upload button).
 - [ ] Expect periodic re-audits; keep the privacy policy, terms and moderation in place.

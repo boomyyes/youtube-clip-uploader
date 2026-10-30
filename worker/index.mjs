@@ -28,7 +28,9 @@ async function must(query) {
 async function upload(clip) {
   const file = await r2.head(clip.storage_path);
   if (!file) throw new Error("Clip file is missing from storage");
-  const read = (start, end) => r2.readRange(clip.storage_path, start, end);
+  if (!clip.approved_etag || file.etag !== clip.approved_etag) throw new Error("Clip file changed after it was approved; not uploading it");
+  // If-Match on every chunk: a swap mid-upload fails instead of mixing files.
+  const read = (start, end) => r2.readRange(clip.storage_path, start, end, clip.approved_etag);
   if (FAKE) {
     await read(0, Math.min(file.size, 1024) - 1); // proves storage access without touching YouTube
     return `fake-${clip.id.slice(0, 8)}`;
@@ -75,7 +77,7 @@ async function main() {
       }).eq("id", clip.id));
       await must(db.from("upload_log").insert({ clip_id: clip.id, uploader_id: clip.user_id, youtube_video_id: videoId }));
       await r2.remove(clip.storage_path);
-      log(`done: https://youtu.be/${videoId} (private)`);
+      log(`done: https://youtu.be/${videoId}`);
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       if (e instanceof YouTubeError && e.isQuota) {

@@ -5,8 +5,7 @@ const LABEL: Record<string, string> = {
   queued: "Waiting for review",
   approved: "Approved, waiting to upload",
   uploading: "Uploading to YouTube",
-  on_youtube: "On YouTube (private until published)",
-  public: "Public on YouTube",
+  on_youtube: "On YouTube",
   rejected: "Rejected",
   failed: "Upload failed, the owner will retry",
 };
@@ -35,7 +34,7 @@ export default async function MyClips() {
                 <td>
                   {LABEL[c.status]}
                   {c.status === "rejected" && c.reject_reason && <>: {c.reject_reason}</>}
-                  {c.status === "public" && c.youtube_video_id && (
+                  {c.status === "on_youtube" && c.youtube_video_id && (
                     <> (<a href={`https://youtu.be/${c.youtube_video_id}`}>watch</a>)</>
                   )}
                 </td>

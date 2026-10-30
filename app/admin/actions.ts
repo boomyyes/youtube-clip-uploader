@@ -2,8 +2,7 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import { accessTokenFromDb, setPublic } from "@/lib/youtube.mjs";
-import { remove } from "@/lib/r2.mjs";
+import { head, remove } from "@/lib/r2.mjs";
 
 // Server actions are public POST endpoints: every one re-checks the owner.
 async function owner() {
@@ -26,7 +25,11 @@ export async function approveUser(f: FormData) {
 
 export async function approveClip(f: FormData) {
   const db = await owner();
-  const { error } = await db.rpc("approve_clip", { p_clip: id(f) });
+  const { data: clip } = await db.from("clips").select("storage_path").eq("id", id(f)).maybeSingle();
+  const file = clip && (await head(clip.storage_path));
+  // Refuse if the file changed since the page was shown (uploader re-sent it with a still-valid URL).
+  if (!file?.etag || file.etag !== f.get("etag")) done("The file changed or is missing. Reload and review it again.");
+  const { error } = await db.rpc("approve_clip", { p_clip: id(f), p_etag: file.etag });
   done(error?.message);
 }
 
@@ -48,18 +51,5 @@ export async function rejectClip(f: FormData) {
 export async function retryClip(f: FormData) {
   const db = await owner();
   const { error } = await db.from("clips").update({ status: "approved", attempts: 0, last_error: null }).eq("id", id(f)).eq("status", "failed");
-  done(error?.message);
-}
-
-export async function publishClip(f: FormData) {
-  const db = await owner();
-  const { data: clip } = await db.from("clips").select("youtube_video_id").eq("id", id(f)).eq("status", "on_youtube").maybeSingle();
-  if (!clip?.youtube_video_id) done("Clip is not on YouTube yet.");
-  try {
-    await setPublic(await accessTokenFromDb(db), clip.youtube_video_id);
-  } catch (e) {
-    done(`Publish failed: ${e instanceof Error ? e.message : "unknown error"}`);
-  }
-  const { error } = await db.from("clips").update({ status: "public" }).eq("id", id(f));
   done(error?.message);
 }

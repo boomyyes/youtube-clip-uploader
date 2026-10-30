@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { GAMES, MAX_BYTES, VIDEO_TYPES } from "@/lib/games";
-import { head, remove } from "@/lib/r2.mjs";
+import { KEY_RE, head, remove } from "@/lib/r2.mjs";
 
 /** Step 2 of an upload: after the file is in R2, record the clip so the owner can review it. */
 export async function POST(request: Request) {
@@ -14,7 +14,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Note must be 500 characters or fewer." }, { status: 400 });
   }
   // The path must be one this user was issued (their own folder) and the file must really be there.
-  if (typeof path !== "string" || !path.startsWith(`${p.id}/`) || path.includes("..")) {
+  if (typeof path !== "string" || !KEY_RE.test(path) || !path.startsWith(`${p.id}/`)) {
     return NextResponse.json({ error: "Bad file path." }, { status: 400 });
   }
   const file = await head(path);

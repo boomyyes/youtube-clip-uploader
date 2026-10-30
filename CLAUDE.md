@@ -39,9 +39,9 @@ Must run at $0. Use only free tiers and design around their limits.
 
 ## Clip lifecycle
 One `status` field with fixed values:
-`queued → approved → uploading → on_youtube → public`, plus `rejected` and `failed`. A clip row is created only after its file is in Storage, so it starts at `queued`.
+`queued → approved → uploading → on_youtube`, plus `rejected` and `failed`. (`public` is still allowed by the DB check but unused.) A clip row is created only after its file is in Storage, so it starts at `queued`.
 - The owner approves **before** the YouTube upload (reviewing the file on our site). This saves quota on clips that get rejected. It replaces "upload private, then switch".
-- While the audit is pending, `on_youtube` videos stay private. Tell users this in the UI.
+- Clips upload as public (already approved). `youtube.upload` cannot edit videos, so there is no publish step; adding one needs the broader `youtube.force-ssl` scope. While the audit is pending YouTube forces uploads to private; the owner flips them in Studio.
 
 ## Upload job
 - No jobs table and no queue service: the `clips` row is the job, so status lives in one place.
@@ -53,6 +53,9 @@ One `status` field with fixed values:
 ## Security
 - Encrypt the refresh token at rest with AES-256-GCM (`TOKEN_ENC_KEY`). Never store it in a plain DB column.
 - New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue.
+- Storage keys must match `<user uuid>/<uuid>.<ext>` exactly (`KEY_RE` in `lib/r2.mjs`); never build an R2 URL from unchecked input.
+- Upload URLs expire after 15 minutes. Approval stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
+- Uploaders can read only display columns of their own clips (column grants in `0004_harden_clips.sql`). `upload_session_url` is a live YouTube credential: server/worker only.
 
 ## Storage (Cloudflare R2)
 - Browsers upload straight to R2 with presigned PUT URLs that pin the exact Content-Type and Content-Length. Big files never pass through the app server. The server re-checks size and type with a HEAD before recording the clip.
