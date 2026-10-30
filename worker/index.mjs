@@ -67,6 +67,9 @@ async function main() {
     }
   }
 
+  // Upload records are kept 12 months (privacy policy), then pruned.
+  await must(db.from("upload_log").delete().lt("uploaded_at", new Date(Date.now() - 365 * 86_400_000).toISOString()));
+
   // Abandoned uploads are removed by the R2 bucket's lifecycle rule (see CLAUDE.md), not here.
   for (;;) {
     const next = await must(db.from("clips").select("id").eq("status", "approved").order("approved_at").limit(1).maybeSingle());
@@ -86,7 +89,8 @@ async function main() {
         status: "on_youtube", youtube_video_id: videoId, uploaded_at: new Date().toISOString(),
         upload_session_url: null, upload_session_started_at: null, last_error: null,
       }).eq("id", clip.id));
-      await must(db.from("upload_log").insert({ clip_id: clip.id, uploader_id: clip.user_id, youtube_video_id: videoId }));
+      const uploader = await must(db.from("profiles").select("email").eq("id", clip.user_id).maybeSingle());
+      await must(db.from("upload_log").insert({ clip_id: clip.id, uploader_id: clip.user_id, uploader_email: uploader?.email ?? null, youtube_video_id: videoId }));
       await r2.remove(clip.storage_path);
       log(`done: https://youtu.be/${videoId}`);
     } catch (e) {

@@ -88,6 +88,11 @@ export default function Privacy() {
         </li>
         <li>Account and clip records are kept until you delete your account.</li>
         <li>
+          Upload records (YouTube video ID, upload time, and the uploader&apos;s account ID and email) are kept for 12 months
+          after each upload, even if the account is deleted, so we can handle copyright or abuse complaints about published
+          videos. They are then deleted automatically.
+        </li>
+        <li>
           The channel name is refreshed from YouTube several times a day. If the owner&apos;s YouTube access is revoked or
           expires, the stored token and channel details are deleted.
         </li>
@@ -97,11 +102,12 @@ export default function Privacy() {
       <ul>
         <li>
           <strong>Delete it yourself:</strong> on the <Link href="/account">Account</Link> page, &quot;Delete my account&quot;
-          immediately removes your account, clip records, upload records and any clips still stored with us.
+          immediately removes your account, clip records and any clips still stored with us. Upload records for videos
+          already published are kept as described in section 6.
         </li>
         <li>
           <strong>Or ask us:</strong> email {CONTACT_EMAIL}. We delete your data as soon as possible and{" "}
-          <strong>within 7 days</strong>.
+          <strong>within 7 days</strong> (except upload records, kept as described in section 6).
         </li>
         <li>
           Deleting your data here <strong>does not delete videos on YouTube</strong>. Data on YouTube is deleted through

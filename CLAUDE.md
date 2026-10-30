@@ -11,6 +11,7 @@ Background notes may be in `docs/conversations/` (local only, gitignored). Every
 3. **Upload flow**: the browser uploads the clip straight to R2 (temporary). A worker then sends it to YouTube with `videos.insert` using the resumable upload protocol.
 4. **Auto title**: sequential template `{username}'s clip in {game} #{n}` (e.g. "Boomy's clip in Valorant #3"). The user picks the game at upload. `n` counts per user per game and is assigned in the DB under a unique constraint on (user, game, n), so two uploads can't get the same number. `n` is assigned at approval, so rejected clips leave no gaps. No AI: it adds cost and rate limits for no gain.
    **Description**: template `Uploaded by {username} on {date}`, plus the uploader's optional note.
+   Both come from SQL `clip_title`/`clip_description` (migration 0006), used by `approve_clip` and `rename_user`. Users rename themselves on `/account`; the new name applies only to clips approved afterwards, never to already-approved titles (those are what the owner reviewed; changing them would bypass moderation).
 5. **Approval queue**: the owner approves each clip before it is sent to YouTube (see Clip lifecycle).
 
 ## Stack (decided)
@@ -54,7 +55,7 @@ One `status` field with fixed values:
 - Encrypt the refresh token at rest with AES-256-GCM (`TOKEN_ENC_KEY`). Never store it in a plain DB column.
 - New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue.
 - Storage keys must match `<user uuid>/<uuid>.<ext>` exactly (`KEY_RE` in `lib/r2.mjs`); never build an R2 URL from unchecked input.
-- Upload URLs expire after 15 minutes, and a clip can only be reviewed/approved after that, so the file the owner previews can no longer change. Approval also stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
+- Upload URLs expire after 5 minutes, and a clip can only be reviewed/approved after that, so the file the owner previews can no longer change. Approval also stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
 - YouTube developer-policy duties (III.A, III.D, III.E): sign-in requires accepting Terms + Privacy; users self-delete at `/account` (immediate; email requests within 7 days); owner's "Disconnect YouTube" revokes the token with Google and deletes the row; a dead token (`invalid_grant`) deletes the row; the worker refreshes the stored channel name every run (within 30 days). Keep `/privacy` and `/terms` in sync with any new data use.
 - Uploaders can read only display columns of their own clips (column grants in `0004_harden_clips.sql`). `upload_session_url` is a live YouTube credential: server/worker only.
 

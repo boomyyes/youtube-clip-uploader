@@ -65,7 +65,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
       <section aria-labelledby="review">
         <h2 id="review">Clips to review ({queued.length})</h2>
-        {waiting.length > 0 && <p>{waiting.length} newer clip(s) become reviewable 15 minutes after upload.</p>}
+        {waiting.length > 0 && <p>{waiting.length} newer clip(s) become reviewable 5 minutes after upload.</p>}
         {queued.map((c) => (
           <article key={c.id} style={{ borderBottom: "1px solid #ddd", paddingBottom: 12 }}>
             <p><strong>{c.profiles?.display_name}</strong> · {c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</p>
