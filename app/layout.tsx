@@ -15,6 +15,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           {p?.approved && <Link href="/upload">Upload</Link>}
           {p?.approved && <Link href="/clips">My clips</Link>}
           {p?.role === "owner" && p.approved && <Link href="/admin">Admin</Link>}
+          {p && <Link href="/account">Account</Link>}
           <Link href="/privacy">Privacy</Link>
           <Link href="/terms">Terms</Link>
           {p && (

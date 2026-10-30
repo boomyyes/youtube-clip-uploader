@@ -7,3 +7,4 @@ out/
 next-env.d.ts
 .remember/
 docs/conversations/
+.claude/settings.local.json

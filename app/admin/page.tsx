@@ -1,7 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
-import { approveClip, approveUser, rejectClip, retryClip } from "./actions";
+import { approveClip, approveUser, disconnectYouTube, rejectClip, retryClip } from "./actions";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
@@ -13,7 +13,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   const { msg, yt } = await searchParams;
   const db = admin();
   const [{ data: conn }, { data: users }, { data: clips }, { data: recent }] = await Promise.all([
-    db.from("youtube_connection").select("channel_title, revoked, updated_at").eq("id", 1).maybeSingle(),
+    db.from("youtube_connection").select("channel_title, updated_at").eq("id", 1).maybeSingle(),
     db.from("profiles").select("id, display_name, email, created_at").eq("approved", false).order("created_at"),
     db.from("clips")
       .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, profiles(display_name)")
@@ -40,12 +40,17 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
       <section aria-labelledby="yt">
         <h2 id="yt">YouTube channel</h2>
-        {conn && !conn.revoked ? (
+        {conn ? (
           <p>Connected to <strong>{conn.channel_title}</strong>.</p>
         ) : (
-          <p className="error">{conn?.revoked ? "Access was revoked or expired. Reconnect to resume uploads." : "Not connected."}</p>
+          <p className="error">Not connected. Uploads are paused until you connect (or reconnect, if access expired).</p>
         )}
         <p><a href="/api/youtube/connect">{conn ? "Reconnect YouTube" : "Connect YouTube"}</a></p>
+        {conn && (
+          <form action={disconnectYouTube}>
+            <button type="submit">Disconnect YouTube</button> (revokes this site&apos;s access and deletes the stored token and channel details)
+          </form>
+        )}
       </section>
 
       <section aria-labelledby="users">

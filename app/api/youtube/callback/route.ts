@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       refresh_token_enc: encrypt(tokens.refresh_token),
       channel_id: channel.id,
       channel_title: channel.title,
-      revoked: false,
       updated_at: new Date().toISOString(),
     });
     if (error) throw error;

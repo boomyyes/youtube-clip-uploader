@@ -22,7 +22,8 @@ Google changes these forms often. Read each form's own instructions when you fil
 ## 2. Public pages
 
 - [ ] `/privacy` and `/terms` load without signing in. (They already do.)
-- [ ] Replace `CONTACT_EMAIL` in `lib/games.ts` with a real address.
+- [x] `CONTACT_EMAIL` set in `lib/games.ts`.
+- [x] Privacy policy and terms rewritten against YouTube developer policies III.A.1/III.A.2 (2026-10-30), plus self-serve account deletion and a Disconnect YouTube button.
 - [ ] Have the privacy policy and terms read by someone qualified; the current text is a draft.
 - [ ] The privacy policy states: what data is collected, how it is used, that the app uses YouTube API Services, links to the YouTube ToS and Google Privacy Policy, and how to revoke access. (The draft covers these.)
 - [ ] A home page that explains what the app does. Reviewers may open `/` signed out and only see a login page. Consider a short public description on `/login`.

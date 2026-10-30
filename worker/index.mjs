@@ -4,7 +4,7 @@
 //   npm run worker:fake   (--fake) skips YouTube entirely (no quota used) for local testing
 import { createClient } from "@supabase/supabase-js";
 import * as r2 from "../lib/r2.mjs";
-import { YouTubeError, accessTokenFromDb, msUntilQuotaReset, sendUpload, startUpload, videoMetadata } from "../lib/youtube.mjs";
+import { YouTubeError, accessTokenFromDb, msUntilQuotaReset, myChannel, sendUpload, startUpload, videoMetadata } from "../lib/youtube.mjs";
 
 const FAKE = process.argv.includes("--fake");
 const ONCE = process.argv.includes("--once");
@@ -56,6 +56,17 @@ async function main() {
   const stuck = new Date(Date.now() - STUCK_AFTER).toISOString();
   await must(db.from("clips").update({ status: "approved" }).eq("status", "uploading").or(`claimed_at.is.null,claimed_at.lt."${stuck}"`));
 
+  // Refresh the stored channel name each run (YouTube policy: refresh stored API data within 30 days).
+  // This also confirms the token still works; a dead one deletes the connection.
+  if (!FAKE) {
+    try {
+      const ch = await myChannel(await accessTokenFromDb(db));
+      if (ch) await must(db.from("youtube_connection").update({ channel_id: ch.id, channel_title: ch.title, updated_at: new Date().toISOString() }).eq("id", 1));
+    } catch (e) {
+      log("channel refresh failed:", e instanceof Error ? e.message : e);
+    }
+  }
+
   // Abandoned uploads are removed by the R2 bucket's lifecycle rule (see CLAUDE.md), not here.
   for (;;) {
     const next = await must(db.from("clips").select("id").eq("status", "approved").order("approved_at").limit(1).maybeSingle());
@@ -92,7 +103,7 @@ async function main() {
         await must(db.from("clips").update({ status: "approved", last_error: "YouTube disconnected; reconnect on the Admin page" }).eq("id", clip.id));
         if (ONCE) throw new Error("YouTube access revoked or expired. Reconnect on the Admin page.");
         log("YouTube access revoked or expired. Reconnect on the Admin page; checking every minute.");
-        while ((await must(db.from("youtube_connection").select("revoked").eq("id", 1).maybeSingle()))?.revoked !== false) await sleep(60_000);
+        while (!(await must(db.from("youtube_connection").select("id").eq("id", 1).maybeSingle()))) await sleep(60_000);
         continue;
       }
       const attempts = clip.attempts + 1;
