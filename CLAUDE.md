@@ -54,7 +54,7 @@ One `status` field with fixed values:
 - Encrypt the refresh token at rest with AES-256-GCM (`TOKEN_ENC_KEY`). Never store it in a plain DB column.
 - New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue.
 - Storage keys must match `<user uuid>/<uuid>.<ext>` exactly (`KEY_RE` in `lib/r2.mjs`); never build an R2 URL from unchecked input.
-- Upload URLs expire after 15 minutes. Approval stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
+- Upload URLs expire after 15 minutes, and a clip can only be reviewed/approved after that, so the file the owner previews can no longer change. Approval also stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
 - Uploaders can read only display columns of their own clips (column grants in `0004_harden_clips.sql`). `upload_session_url` is a live YouTube credential: server/worker only.
 
 ## Storage (Cloudflare R2)

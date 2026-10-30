@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import { head, presignGet } from "@/lib/r2.mjs";
+import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
 import { approveClip, approveUser, rejectClip, retryClip } from "./actions";
 
 type Clip = {
@@ -23,7 +23,10 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("clips").select("id, title, youtube_video_id").eq("status", "on_youtube").order("uploaded_at", { ascending: false }).limit(10),
   ]);
   const by = (s: string) => (clips ?? []).filter((c) => c.status === s);
-  const queued = by("queued");
+  // Clips whose upload URL is still live can change, so they aren't shown for review yet.
+  const cutoff = reviewableBefore();
+  const waiting = by("queued").filter((c) => Date.parse(c.created_at) > cutoff);
+  const queued = by("queued").filter((c) => Date.parse(c.created_at) <= cutoff);
   // One-hour preview links for the review queue.
   // The ETag goes into the Approve form, so approval is tied to the version the owner was shown.
   const preview = new Map(
@@ -57,6 +60,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
       <section aria-labelledby="review">
         <h2 id="review">Clips to review ({queued.length})</h2>
+        {waiting.length > 0 && <p>{waiting.length} newer clip(s) become reviewable 15 minutes after upload.</p>}
         {queued.map((c) => (
           <article key={c.id} style={{ borderBottom: "1px solid #ddd", paddingBottom: 12 }}>
             <p><strong>{c.profiles?.display_name}</strong> · {c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</p>

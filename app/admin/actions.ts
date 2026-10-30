@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import { head, remove } from "@/lib/r2.mjs";
+import { head, remove, reviewableBefore } from "@/lib/r2.mjs";
 
 // Server actions are public POST endpoints: every one re-checks the owner.
 async function owner() {
@@ -25,7 +25,9 @@ export async function approveUser(f: FormData) {
 
 export async function approveClip(f: FormData) {
   const db = await owner();
-  const { data: clip } = await db.from("clips").select("storage_path").eq("id", id(f)).maybeSingle();
+  const { data: clip } = await db.from("clips").select("storage_path, created_at").eq("id", id(f)).maybeSingle();
+  // Until the upload URL expires the uploader could still replace the file (even after the preview).
+  if (clip && Date.parse(clip.created_at) > reviewableBefore()) done("Wait until the clip is 15 minutes old, then review it.");
   const file = clip && (await head(clip.storage_path));
   // Refuse if the file changed since the page was shown (uploader re-sent it with a still-valid URL).
   if (!file?.etag || file.etag !== f.get("etag")) done("The file changed or is missing. Reload and review it again.");
