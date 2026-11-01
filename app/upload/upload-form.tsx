@@ -103,6 +103,40 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
     probe.onerror = () => setFormat("regular");
     probe.src = url;
   }
+  // Drag a file anywhere over the page: show an overlay, and on drop put it in the file input (as if picked).
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [dragging, setDragging] = useState(false);
+  const busyRef = useRef(false);
+  const depth = useRef(0); // dragenter/leave fire for every child element; survives re-renders
+  useEffect(() => {
+    const hasFile = (e: DragEvent) => e.dataTransfer?.types.includes("Files") ?? false;
+    const enter = (e: DragEvent) => { if (hasFile(e) && !busyRef.current) { depth.current++; setDragging(true); } };
+    const leave = (e: DragEvent) => { if (hasFile(e) && --depth.current <= 0) { depth.current = 0; setDragging(false); } };
+    const over = (e: DragEvent) => { if (hasFile(e)) e.preventDefault(); }; // allow dropping (else the browser opens the file)
+    const drop = (e: DragEvent) => {
+      if (!hasFile(e)) return;
+      e.preventDefault();
+      depth.current = 0;
+      setDragging(false);
+      const file = e.dataTransfer?.files[0];
+      const input = fileRef.current;
+      if (!file || !input || busyRef.current) return;
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      input.files = dt.files; // the form submits from the input, so drop and Browse behave the same
+      pickFile(file);
+    };
+    window.addEventListener("dragenter", enter);
+    window.addEventListener("dragleave", leave);
+    window.addEventListener("dragover", over);
+    window.addEventListener("drop", drop);
+    return () => {
+      window.removeEventListener("dragenter", enter);
+      window.removeEventListener("dragleave", leave);
+      window.removeEventListener("dragover", over);
+      window.removeEventListener("drop", drop);
+    };
+  });
   const canShort = !!clip && clip.duration <= MAX_SHORT_SECONDS;
   const transform = clip ? transformFor(format === "short" && !canShort ? "regular" : format, clip) : "none";
 
@@ -163,8 +197,14 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
   }
 
   const busy = progress !== null;
+  useEffect(() => { busyRef.current = busy; }, [busy]); // no drops while a file is uploading
   return (
     <>
+      {dragging && (
+        <div className="drop-overlay" aria-hidden="true">
+          <div><Icon name="upload" size={40} /><strong>Drop your clip</strong><span>MP4, MOV, WebM or MKV · max 2 GB</span></div>
+        </div>
+      )}
       <form className="panel upload-panel" onSubmit={submit}>
         <div className="panel-header">
           <div>
@@ -186,6 +226,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
           </label>
           <div className={`file-drop ${fileName ? "has-file" : ""}`}>
             <input
+              ref={fileRef}
               id="file"
               name="file"
               type="file"
@@ -198,7 +239,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             </div>
             <div>
               <strong>{fileName ?? "Choose a video file"}</strong>
-              <span>MP4, MOV, WebM or MKV · max 2 GB</span>
+              <span>Drag it anywhere on the page or browse · MP4, MOV, WebM or MKV · max 2 GB</span>
             </div>
             <span className="file-browse" aria-hidden="true">
               Browse

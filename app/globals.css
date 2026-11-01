@@ -278,3 +278,8 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .review-card .format-preview { margin: 0 auto; border: 0; }
 .review-card .format-short { width: auto; height: 218px; }
 .review-card .format-pad, .review-card .format-none { max-width: none; height: 218px; width: 100%; }
+/* Upload page: file dragged over the window */
+.drop-overlay { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; pointer-events: none; background: rgb(10 13 18 / .82); backdrop-filter: blur(4px); }
+.drop-overlay > div { display: grid; justify-items: center; gap: 10px; padding: 48px 64px; color: var(--banana); border: 2px dashed var(--banana); background: rgba(245, 200, 66, .06); }
+.drop-overlay strong { color: var(--text); font-size: 28px; }
+.drop-overlay span { color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
