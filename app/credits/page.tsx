@@ -20,6 +20,20 @@ const ASSETS = [
     site: "streamlinehq.com",
   },
   {
+    what: "Landing page design, pixel banana mark and scene poster",
+    use: "Home page, favicon",
+    licence: "Generated for this project with Emergent",
+    href: "https://emergent.sh/",
+    site: "emergent.sh",
+  },
+  {
+    what: "three.js, React Three Fiber, Framer Motion, Lenis",
+    use: "3D banana scene and motion on the home page",
+    licence: "MIT License",
+    href: "https://threejs.org/",
+    site: "threejs.org",
+  },
+  {
     what: "Space Grotesk + IBM Plex Mono",
     use: "Typography, via Google Fonts",
     licence: "SIL Open Font License 1.1",

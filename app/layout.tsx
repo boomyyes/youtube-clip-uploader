@@ -14,7 +14,7 @@ const mono = IBM_Plex_Mono({ weight: ["400", "500", "600"], subsets: ["latin"], 
 export const metadata: Metadata = {
   title: "Bananas All Over The World · Clip Desk",
   description: "Share game clips to our YouTube channel",
-  icons: { icon: "/assets/openmoji-banana.svg" },
+  icons: { icon: "/assets/pixel-banana.svg" },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
