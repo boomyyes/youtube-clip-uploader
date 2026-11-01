@@ -18,7 +18,7 @@ Background notes may be in `docs/conversations/` (local only, gitignored). Every
 - Next.js (frontend + API routes)
 - Supabase free plan: Auth (Google), Postgres (users, clips)
 - Cloudflare R2 free tier (10 GB, no egress fees): temporary clip storage, up to 2 GB per clip
-- Upload worker (`worker/index.mjs`): GitHub Actions runs it with `--once` every 6 hours (`.github/workflows/upload.yml`, secrets in the repo settings). `npm run worker` on the owner's PC still works for an instant upload. Free web hosts can't run it (function time limits).
+- Upload worker (`worker/index.mjs`): GitHub Actions runs it with `--once` every 6 hours and right after each approval/retry (`lib/dispatch.ts` calls workflow_dispatch with `GITHUB_DISPATCH_TOKEN`; best effort, the schedule is the fallback; the workflow's concurrency group keeps runs from overlapping) (`.github/workflows/upload.yml`, secrets in the repo settings). `npm run worker` on the owner's PC still works for an instant upload. Free web hosts can't run it (function time limits).
 - One shared YouTube channel (the owner's).
 - Supabase free projects pause after a week of inactivity; open the dashboard to resume.
 
@@ -43,6 +43,11 @@ One `status` field with fixed values:
 `queued → approved → uploading → on_youtube`, plus `rejected` and `failed`. (`public` is still allowed by the DB check but unused.) A clip row is created only after its file is in Storage, so it starts at `queued`.
 - The owner approves **before** the YouTube upload (reviewing the file on our site). This saves quota on clips that get rejected. It replaces "upload private, then switch".
 - Clips upload as public (already approved). `youtube.upload` cannot edit videos, so there is no publish step; adding one needs the broader `youtube.force-ssl` scope. While the audit is pending YouTube forces uploads to private; the owner flips them in Studio.
+
+## YouTube Shorts
+- YouTube has no API flag for Shorts: an upload that is vertical/square and <= 3 minutes becomes a Short automatically.
+- The upload page reads the clip's shape and length in the browser, recommends Short or Regular, lets the uploader choose, and previews the result. `clips.format` is the choice; `clips.transform` (`none`/`crop`/`pad`, from `lib/shorts.mjs`, computed on the server) is what the worker does: crop a wide clip to 9:16 for a Short, or pad a vertical clip to 16:9 over a blurred copy for a regular video. Over 3 minutes is always regular. Shorts get `#Shorts` in the description (migration 0009).
+- Reshaping downloads the approved file (still `If-Match` checked), runs ffmpeg, and uploads the result; a reshaped clip never resumes an old session. ffmpeg is preinstalled on GitHub Actions; `npm run worker` locally needs it on PATH, or the clip fails with a clear error (Retry lets Actions do it).
 
 ## Upload job
 - No jobs table and no queue service: the `clips` row is the job, so status lives in one place.

@@ -258,3 +258,23 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .login-right { background: rgb(12 17 24 / .88); }
 /* keep hero copy readable over the rain */
 .login-hero, .login-footer-line, .page-header { text-shadow: 0 0 6px var(--ink), 0 0 14px var(--ink), 0 0 24px var(--ink); }
+
+/* YouTube Shorts: format choice + preview framed like the worker's reshape (lib/shorts.mjs) */
+.format-choice { min-width: 0; margin: 0 0 22px; padding: 0; border: 0; }
+.format-options { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 4px; }
+.format-option { display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; border: 1px solid var(--line-bright); background: var(--panel-soft); font-size: 13px; cursor: pointer; }
+.format-option.is-selected { border-color: var(--banana); background: rgba(245, 200, 66, .08); }
+.format-option input { width: auto; accent-color: var(--banana); }
+.format-option:has(input:disabled) { opacity: .5; cursor: not-allowed; }
+.format-preview { position: relative; overflow: hidden; margin-top: 12px; background: #000; border: 1px solid var(--line); }
+.format-preview video { display: block; width: 100%; height: 100%; }
+.format-short { width: min(100%, 220px); aspect-ratio: 9 / 16; }
+.format-short video { object-fit: cover; }
+.format-pad { width: 100%; max-width: 480px; aspect-ratio: 16 / 9; }
+.format-pad-bg { position: absolute; inset: 0; object-fit: cover; filter: blur(18px) brightness(.7); transform: scale(1.15); }
+.format-pad-fg { position: relative; object-fit: contain; }
+.format-none { max-width: 480px; }
+.format-none video { max-height: 360px; object-fit: contain; }
+.review-card .format-preview { margin: 0 auto; border: 0; }
+.review-card .format-short { width: auto; height: 218px; }
+.review-card .format-pad, .review-card .format-none { max-width: none; height: 218px; width: 100%; }

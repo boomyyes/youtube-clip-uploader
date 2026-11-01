@@ -26,6 +26,9 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --ignore-scripts
+      # Shorts crop/pad needs ffmpeg (lib/shorts.mjs). Preinstalled on ubuntu-latest today; install it if a future image drops it.
+      - name: Ensure ffmpeg
+        run: command -v ffmpeg || (sudo apt-get update && sudo apt-get install -y ffmpeg); ffmpeg -version | head -1
       - run: node worker/index.mjs --once
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}

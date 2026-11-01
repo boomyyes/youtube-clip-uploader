@@ -2,7 +2,12 @@
 //   npm run worker        keeps running on the owner's PC
 //   --once                uploads what's approved, then exits (GitHub Actions runs this on a schedule)
 //   npm run worker:fake   (--fake) skips YouTube entirely (no quota used) for local testing
+import { spawn } from "node:child_process";
+import { mkdtemp, open, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+import { ffmpegArgs } from "../lib/shorts.mjs";
 import * as r2 from "../lib/r2.mjs";
 import { YouTubeError, accessTokenFromDb, msUntilQuotaReset, myChannel, sendUpload, startUpload, videoMetadata } from "../lib/youtube.mjs";
 
@@ -25,28 +30,78 @@ async function must(query) {
   return data;
 }
 
+/** Can't be fixed by retrying: fail the clip at once. */
+class FatalError extends Error {}
+
+function ffmpeg(args) {
+  return new Promise((resolve, reject) => {
+    const p = spawn("ffmpeg", ["-loglevel", "error", ...args], { stdio: ["ignore", "ignore", "pipe"] });
+    let err = "";
+    p.stderr.on("data", (d) => (err += d));
+    p.on("error", (e) => reject(e.code === "ENOENT" ? new FatalError("ffmpeg not installed: install it or let GitHub Actions upload this clip") : e));
+    p.on("close", (code) => (code ? reject(new Error(`ffmpeg failed: ${err.slice(-300)}`)) : resolve()));
+  });
+}
+
+const PIECE = 8 * 1024 * 1024;
+
+/** Downloads the approved file (If-Match on every piece) and crops/pads it (lib/shorts.mjs). Returns a local source. */
+async function reshape(clip, size) {
+  const dir = await mkdtemp(join(tmpdir(), "clip-"));
+  try {
+    const input = join(dir, "in"), output = join(dir, "out.mp4");
+    const fh = await open(input, "w");
+    try {
+      for (let s = 0; s < size; s += PIECE) await fh.write(new Uint8Array(await r2.readRange(clip.storage_path, s, Math.min(s + PIECE, size) - 1, clip.approved_etag)));
+    } finally {
+      await fh.close();
+    }
+    await ffmpeg(ffmpegArgs(clip.transform, input, output));
+    const out = await open(output, "r");
+    const { size: outSize } = await out.stat();
+    const read = async (start, end) => {
+      const buf = Buffer.alloc(end - start + 1);
+      await out.read(buf, 0, buf.length, start);
+      return buf;
+    };
+    return { size: outSize, type: "video/mp4", read, done: async () => { await out.close(); await rm(dir, { recursive: true, force: true }); } };
+  } catch (e) {
+    await rm(dir, { recursive: true, force: true });
+    throw e;
+  }
+}
+
 async function upload(clip) {
   const file = await r2.head(clip.storage_path);
   if (!file) throw new Error("Clip file is missing from storage");
   if (!clip.approved_etag || file.etag !== clip.approved_etag) throw new Error("Clip file changed after it was approved; not uploading it");
+  const reshaped = clip.transform && clip.transform !== "none";
   // If-Match on every chunk: a swap mid-upload fails instead of mixing files.
-  const read = (start, end) => r2.readRange(clip.storage_path, start, end, clip.approved_etag);
-  if (FAKE) {
-    await read(0, Math.min(file.size, 1024) - 1); // proves storage access without touching YouTube
-    return `fake-${clip.id.slice(0, 8)}`;
+  const src = reshaped
+    ? await reshape(clip, file.size)
+    : { size: file.size, type: file.type || "video/mp4", read: (start, end) => r2.readRange(clip.storage_path, start, end, clip.approved_etag), done: async () => {} };
+  try {
+    if (FAKE) {
+      await src.read(0, Math.min(src.size, 1024) - 1); // proves storage access without touching YouTube
+      log(reshaped ? `fake: reshaped (${clip.transform}) to ${src.size} bytes` : "fake: storage readable");
+      return `fake-${clip.id.slice(0, 8)}`;
+    }
+    const token = await accessTokenFromDb(db);
+    const age = Date.now() - new Date(clip.upload_session_started_at ?? 0).getTime();
+    // A reshaped file isn't byte-identical across runs, so it never resumes an old session.
+    if (!reshaped && clip.upload_session_url && age < SESSION_MAX_AGE) {
+      const id = await sendUpload(token, clip.upload_session_url, src.size, src.read); // resume
+      if (id) return id;
+    }
+    const url = await startUpload(token, videoMetadata(clip.title, clip.description), src.size, src.type);
+    // Saved before sending, so a crash mid-upload resumes instead of creating a second video.
+    await must(db.from("clips").update({ upload_session_url: url, upload_session_started_at: new Date().toISOString() }).eq("id", clip.id));
+    const id = await sendUpload(token, url, src.size, src.read);
+    if (!id) throw new Error("Upload session expired right after it was created");
+    return id;
+  } finally {
+    await src.done();
   }
-  const token = await accessTokenFromDb(db);
-  const age = Date.now() - new Date(clip.upload_session_started_at ?? 0).getTime();
-  if (clip.upload_session_url && age < SESSION_MAX_AGE) {
-    const id = await sendUpload(token, clip.upload_session_url, file.size, read); // resume
-    if (id) return id;
-  }
-  const url = await startUpload(token, videoMetadata(clip.title, clip.description), file.size, file.type || "video/mp4");
-  // Saved before sending, so a crash mid-upload resumes instead of creating a second video.
-  await must(db.from("clips").update({ upload_session_url: url, upload_session_started_at: new Date().toISOString() }).eq("id", clip.id));
-  const id = await sendUpload(token, url, file.size, read);
-  if (!id) throw new Error("Upload session expired right after it was created");
-  return id;
 }
 
 async function main() {
@@ -111,7 +166,7 @@ async function main() {
         continue;
       }
       const attempts = clip.attempts + 1;
-      const failed = attempts >= MAX_ATTEMPTS;
+      const failed = e instanceof FatalError || attempts >= MAX_ATTEMPTS;
       await must(db.from("clips").update({ status: failed ? "failed" : "approved", attempts, last_error: message }).eq("id", clip.id));
       log(`error (attempt ${attempts}/${MAX_ATTEMPTS}): ${message}`);
       if (ONCE) return; // retry on the next scheduled run

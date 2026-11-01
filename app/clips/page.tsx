@@ -9,7 +9,7 @@ export default async function MyClips() {
   const supabase = await createClient(); // RLS: only this user's clips
   const { data: clips } = await supabase
     .from("clips")
-    .select("id, game, title, status, reject_reason, youtube_video_id, created_at")
+    .select("id, game, title, status, reject_reason, youtube_video_id, created_at, format")
     .order("created_at", { ascending: false });
   return (
     <div className="content-page">
@@ -41,7 +41,7 @@ export default async function MyClips() {
             {clips.map((c) => (
               <div className="clip-row" role="row" key={c.id}>
                 <span role="cell" className="table-label" data-label="Date">{new Date(c.created_at).toLocaleDateString("en-IN")}</span>
-                <span role="cell" className="table-label" data-label="Game"><span className="game-tag">{c.game}</span></span>
+                <span role="cell" className="table-label" data-label="Game"><span className="game-tag">{c.game}</span> <span className="game-tag">{c.format === "short" ? "Short" : "Regular"}</span></span>
                 <span role="cell" className="clip-title" data-label="Title">{c.title ?? "Given on approval"}</span>
                 <span role="cell" data-label="Status">
                   <StatusPill status={c.status} />

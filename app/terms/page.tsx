@@ -5,7 +5,7 @@ import { PageHeader } from "../ui";
 
 export const metadata = { title: "Terms of Service · Clip Uploader" };
 
-const UPDATED = "30 October 2026";
+const UPDATED = "2 November 2026";
 
 export default function Terms() {
   return (
@@ -56,8 +56,8 @@ export default function Terms() {
       <h2>4. Permission you give us</h2>
       <p>
         By submitting a clip, you give the owner a non-exclusive, worldwide, royalty-free permission to publish it on our
-        YouTube channel, with a title and description that include your display name and the date, and to keep it there or
-        remove it. The channel isn&apos;t monetized, and you won&apos;t be paid for clips. You can ask for a published
+        YouTube channel, with a title and description that include your display name and the date, to crop or pad it to
+        fit the format you choose (YouTube Short or regular video), and to keep it there or remove it. The channel isn&apos;t monetized, and you won&apos;t be paid for clips. You can ask for a published
         clip to be removed at any time by emailing {CONTACT_EMAIL}.
       </p>
 

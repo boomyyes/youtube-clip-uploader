@@ -5,11 +5,13 @@ import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
 import { addGame, approveClip, approveUser, disconnectYouTube, rejectClip, removeGame, retryClip } from "./actions";
 import Icon from "../pixel-icon";
 import { Notice, PageHeader, StatusPill } from "../ui";
+import FormatPreview from "../format-preview";
 import { OTHER_GAME, sortGames } from "@/lib/games";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
-  youtube_video_id: string | null; last_error: string | null; created_at: string; profiles: { display_name: string } | null;
+  youtube_video_id: string | null; last_error: string | null; created_at: string; format: string; transform: string;
+  profiles: { display_name: string } | null;
 };
 
 const initial = (name?: string) => (name ?? "?").charAt(0).toUpperCase();
@@ -22,7 +24,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("youtube_connection").select("channel_title, updated_at").eq("id", 1).maybeSingle(),
     db.from("profiles").select("id, display_name, email, created_at").eq("approved", false).order("created_at"),
     db.from("clips")
-      .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, profiles(display_name)")
+      .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, format, transform, profiles(display_name)")
       .in("status", ["queued", "approved", "uploading", "failed"])
       .order("created_at")
       .returns<Clip[]>(),
@@ -130,10 +132,17 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <div className="review-meta">
                   <span className="user-avatar small" aria-hidden="true">{initial(who)}</span>
                   <div><strong>{who}</strong><span>{c.game} · {new Date(c.created_at).toLocaleString("en-IN")}</span></div>
-                  <StatusPill status={c.status} />
+                  <span className={`status-pill ${c.format === "short" ? "status-online" : "status-uploading"}`}>
+                    <span className="status-dot" aria-hidden="true" />{c.format === "short" ? "Short" : "Regular"}
+                  </span>
                 </div>
+                {c.transform !== "none" && (
+                  <p className="review-note muted">
+                    {c.transform === "crop" ? "Will be cropped to 9:16 for Shorts before upload." : "Will be padded to 16:9 (blurred sides) so it posts as a regular video."}
+                  </p>
+                )}
                 {pv?.etag ? (
-                  <video className="review-video" controls preload="metadata" src={pv.url} aria-label={`Clip by ${who}`} />
+                  <FormatPreview src={pv.url} transform={c.transform} still label={`Clip by ${who}`} />
                 ) : (
                   <div className="missing-preview"><Icon name="alert" size={23} /><strong>File missing from storage</strong><span>Reject this clip.</span></div>
                 )}
@@ -164,7 +173,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <div><span className="panel-kicker">PIPELINE / 04</span><h2 id="pipeline">Upload pipeline</h2></div>
           <Icon name="refresh" size={20} />
         </div>
-        <p className="muted">Approved clips upload every 6 hours (GitHub Actions), or right away with <code>npm run worker</code>.</p>
+        <p className="muted">Approving (or retrying) a clip starts the GitHub Actions upload within a minute or two; it also runs every 6 hours as a backup. <code>npm run worker</code> works too.</p>
         {pipeline.length > 0 && (
           <div className="pipeline-table" role="table" aria-label="Upload pipeline">
             <div className="pipeline-head" role="row">

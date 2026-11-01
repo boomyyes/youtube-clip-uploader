@@ -1,9 +1,19 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MAX_BYTES, VIDEO_TYPES, sortGames } from "@/lib/games";
 import { createClient } from "@/lib/supabase/browser";
 import Icon from "../pixel-icon";
 import { Notice } from "../ui";
+import FormatPreview from "../format-preview";
+import { MAX_SHORT_SECONDS, recommendFormat, transformFor } from "@/lib/shorts.mjs";
+
+type Clip = { url: string; width: number; height: number; duration: number; still: boolean };
+
+const RESHAPE_NOTE: Record<string, string> = {
+  crop: "The middle of the frame will be cropped to vertical (9:16).",
+  pad: "It will be padded to widescreen (16:9) over a blurred copy, so YouTube doesn't make it a Short.",
+  none: "",
+};
 
 function lowestFree(taken: number[] = []) {
   let n = 1;
@@ -64,6 +74,37 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
   } | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [noteLength, setNoteLength] = useState(0);
+  // The chosen file's shape and length (read in the browser) drive the Short/Regular choice and preview.
+  const [clip, setClip] = useState<Clip | null>(null);
+  const [format, setFormat] = useState<"short" | "regular">("regular");
+  const urlRef = useRef<string | null>(null);
+  const dropPreview = () => {
+    if (urlRef.current) URL.revokeObjectURL(urlRef.current);
+    urlRef.current = null;
+    setClip(null);
+  };
+  useEffect(() => dropPreview, []);
+
+  function pickFile(file: File | undefined) {
+    setFileName(file?.name ?? null);
+    dropPreview();
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    urlRef.current = url;
+    const probe = document.createElement("video");
+    probe.preload = "metadata";
+    probe.onloadedmetadata = () => {
+      if (urlRef.current !== url) return; // another file was picked meanwhile
+      const c = { url, width: probe.videoWidth, height: probe.videoHeight, duration: probe.duration, still: matchMedia("(prefers-reduced-motion: reduce)").matches };
+      setClip(c);
+      setFormat(recommendFormat(c));
+    };
+    // Some formats (often MKV) can't be read by the browser: no preview, and it uploads as a regular video.
+    probe.onerror = () => setFormat("regular");
+    probe.src = url;
+  }
+  const canShort = !!clip && clip.duration <= MAX_SHORT_SECONDS;
+  const transform = clip ? transformFor(format === "short" && !canShort ? "regular" : format, clip) : "none";
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -94,6 +135,10 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
         path,
         game: data.get("game"),
         note: data.get("note"),
+        format: clip ? format : "regular",
+        width: clip?.width,
+        height: clip?.height,
+        duration: clip?.duration,
       });
       form.reset();
       const sent = String(data.get("game"));
@@ -101,6 +146,8 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       setGame("");
       setFileName(null);
       setNoteLength(0);
+      dropPreview();
+      setFormat("regular");
       setMessage({
         text: "Uploaded. It will appear on YouTube after the owner approves it.",
         error: false,
@@ -144,7 +191,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
               type="file"
               accept={VIDEO_TYPES.join(",")}
               required
-              onChange={(e) => setFileName(e.target.files?.[0]?.name ?? null)}
+              onChange={(e) => pickFile(e.target.files?.[0])}
             />
             <div className="file-drop-icon">
               <Icon name="upload" size={23} />
@@ -161,6 +208,24 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             <Icon name="info" size={14} /> Files can be large, so uploads may
             take a few minutes. Keep this tab open.
           </p>
+          {clip && (
+            <fieldset className="format-choice">
+              <legend className="field-label">Format</legend>
+              <div className="format-options">
+                <label className={`format-option ${format === "short" ? "is-selected" : ""}`}>
+                  <input type="radio" name="format" value="short" checked={format === "short"} disabled={!canShort} onChange={() => setFormat("short")} />
+                  YouTube Short {recommendFormat(clip) === "short" && <span className="optional">Recommended</span>}
+                  {!canShort && <span className="optional">Over 3 minutes</span>}
+                </label>
+                <label className={`format-option ${format === "regular" ? "is-selected" : ""}`}>
+                  <input type="radio" name="format" value="regular" checked={format === "regular"} onChange={() => setFormat("regular")} />
+                  Regular video {recommendFormat(clip) === "regular" && <span className="optional">Recommended</span>}
+                </label>
+              </div>
+              {RESHAPE_NOTE[transform] && <p className="field-help"><Icon name="info" size={14} /> {RESHAPE_NOTE[transform]}</p>}
+              <FormatPreview src={clip.url} transform={transform} still={clip.still} label={`Preview of ${fileName} as a ${format === "short" ? "Short" : "regular video"}`} />
+            </fieldset>
+          )}
           <label className="field-label" htmlFor="game">
             Game <span className="required">Required</span>
           </label>
@@ -269,6 +334,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             Your clip becomes &quot;{name}&apos;s clip in {game || "[game]"} #
             {game ? lowestFree(used[game]) : "[n]"}&quot; when approved.
           </p>
+          {format === "short" && clip && <p className="muted">#Shorts is added to the description.</p>}
         </div>
       </aside>
     </>
