@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
@@ -40,7 +41,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div className="content-page admin-page">
-      <PageHeader eyebrow="OWNER CONSOLE / 01" title="Admin">
+      <PageHeader eyebrow="OWNER CONSOLE / 01" title="Admin" action={<Link href="/admin/members" className="button button-secondary"><Icon name="users" /> Members</Link>}>
         Approve the crew, clear the review queue and keep the YouTube pipeline moving.
       </PageHeader>
       {(msg || yt) && <Notice tone="success">{msg ?? yt}</Notice>}

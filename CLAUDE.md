@@ -53,7 +53,7 @@ One `status` field with fixed values:
 
 ## Security
 - Encrypt the refresh token at rest with AES-256-GCM (`TOKEN_ENC_KEY`). Never store it in a plain DB column.
-- New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue.
+- New accounts are unapproved until the owner approves them. Strangers must not reach the channel's queue. The owner manages accounts at `/admin/members` (rename, suspend/reactivate, delete via the same `purgeUser` as self-deletion); owner accounts can't be changed there.
 - Storage keys must match `<user uuid>/<uuid>.<ext>` exactly (`KEY_RE` in `lib/r2.mjs`); never build an R2 URL from unchecked input.
 - Upload URLs expire after 5 minutes, and a clip can only be reviewed/approved after that, so the file the owner previews can no longer change. Approval also stores the reviewed file's ETag (`approved_etag`); the worker reads every chunk with `If-Match`, so a file swapped after review is never uploaded.
 - YouTube developer-policy duties (III.A, III.D, III.E): sign-in requires accepting Terms + Privacy; users self-delete at `/account` (immediate; email requests within 7 days); owner's "Disconnect YouTube" revokes the token with Google and deletes the row; a dead token (`invalid_grant`) deletes the row; the worker refreshes the stored channel name every run (within 30 days). Keep `/privacy` and `/terms` in sync with any new data use.

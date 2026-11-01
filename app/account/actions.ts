@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import { remove } from "@/lib/r2.mjs";
+import { purgeUser } from "@/lib/purge-user";
 
 /** Changes the display name. Only clips approved afterwards use it: approved titles are what the owner reviewed. */
 export async function changeName(f: FormData) {
@@ -23,17 +23,8 @@ export async function deleteAccount(f: FormData) {
   if (f.get("confirm") !== "yes") redirect("/account?msg=" + encodeURIComponent("Tick the box to confirm."));
   if (p.role === "owner") redirect("/account?msg=" + encodeURIComponent("The owner account can't be deleted here; it would leave the site without an admin."));
 
-  const db = admin();
-  // Cancel approved clips first so the worker can't claim one after the check below (it only claims 'approved').
-  await db.from("clips").update({ status: "rejected", reject_reason: "Account deleted" }).eq("user_id", p.id).eq("status", "approved");
-  // A clip already mid-upload could still be published after the account is gone, so wait for it.
-  const { count } = await db.from("clips").select("id", { count: "exact", head: true }).eq("user_id", p.id).eq("status", "uploading");
-  if (count) redirect("/account?msg=" + encodeURIComponent("One of your clips is uploading to YouTube right now. Your other approved clips were cancelled; try deleting again in a few minutes."));
-  const { data: clips } = await db.from("clips").select("storage_path").eq("user_id", p.id);
-  for (const c of clips ?? []) await remove(c.storage_path); // missing files are fine
-  // upload_log is kept (with the uploader's email) for 12 months for copyright/abuse complaints; see the privacy policy.
-  const { error } = await db.auth.admin.deleteUser(p.id); // cascades to profile and clip records
-  if (error) redirect("/account?msg=" + encodeURIComponent(`Deletion failed: ${error.message}`));
+  const err = await purgeUser(p.id);
+  if (err) redirect("/account?msg=" + encodeURIComponent(err));
   await (await createClient()).auth.signOut();
   redirect("/login?deleted=1");
 }
