@@ -6,7 +6,7 @@ import { Logo, Notice } from "../ui";
 import SignInButton from "./sign-in-button";
 
 export default async function Login({ searchParams }: { searchParams: Promise<{ error?: string; deleted?: string }> }) {
-  if (await getProfile()) redirect("/");
+  if (await getProfile()) redirect("/desk");
   const { error, deleted } = await searchParams;
   return (
     <div className="login-frame">

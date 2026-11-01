@@ -1,11 +1,8 @@
-import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
 import Landing from "./_landing/Landing";
 
-// Signed out: the 3D landing page. Signed in: straight to your desk.
+// Everyone sees the landing page; signed-in people get a button to their desk instead of "Sign in".
 export default async function Home() {
   const p = await getProfile();
-  if (!p) return <Landing />;
-  if (!p.approved) redirect("/pending");
-  redirect(p.role === "owner" ? "/admin" : "/upload");
+  return <Landing cta={p ? { href: "/desk", label: "Open clip desk" } : { href: "/login", label: "Sign in with Google" }} />;
 }

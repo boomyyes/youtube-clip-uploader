@@ -19,7 +19,7 @@ class ErrorBoundary extends Component {
   }
 }
 
-export default function Landing() {
+export default function Landing({ cta }) {
   // Smooth scrolling (skipped for reduced motion).
   useEffect(() => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -39,9 +39,9 @@ export default function Landing() {
   return (
     <ErrorBoundary>
       <div className="landing">
-        <Nav />
+        <Nav cta={cta} />
         <main>
-          <Hero />
+          <Hero cta={cta} />
           <Marquee />
           <HowItWorks />
         </main>

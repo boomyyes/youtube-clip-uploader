@@ -19,6 +19,6 @@ export async function requireUser(ownerOnly = false): Promise<Profile> {
   const p = await getProfile();
   if (!p) redirect("/login");
   if (!p.approved) redirect("/pending");
-  if (ownerOnly && p.role !== "owner") redirect("/");
+  if (ownerOnly && p.role !== "owner") redirect("/desk");
   return p;
 }

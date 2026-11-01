@@ -5,7 +5,7 @@ import Icon from "../pixel-icon";
 export default async function Pending() {
   const p = await getProfile();
   if (!p) redirect("/login");
-  if (p.approved) redirect("/");
+  if (p.approved) redirect("/desk");
   return (
     <div className="narrow-page pending-page">
       <div className="pending-orbit" aria-hidden="true"><span>🍌</span></div>

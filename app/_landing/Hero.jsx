@@ -32,7 +32,7 @@ function ScenePoster() {
 const EASE = [0.16, 1, 0.3, 1];
 const noop = () => () => {};
 
-export default function Hero() {
+export default function Hero({ cta }) {
   const reduced = useReducedMotion();
   // false on the server (no `document`), real answer in the browser, without a hydration mismatch.
   const webgl = useSyncExternalStore(noop, hasWebGL, () => false);
@@ -84,7 +84,7 @@ export default function Hero() {
           </motion.p>
 
           <motion.div className="hero-ctas" {...fade(0.75)}>
-            <a className="btn btn-primary" href="/login">Sign in with Google</a>
+            <a className="btn btn-primary" href={cta.href}>{cta.label}</a>
             <a className="btn btn-ghost" href={CHANNEL_URL} target="_blank" rel="noopener noreferrer">Watch the channel ↗</a>
           </motion.div>
         </div>
