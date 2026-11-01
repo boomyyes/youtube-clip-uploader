@@ -107,7 +107,9 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   const busyRef = useRef(false);
-  const depth = useRef(0); // dragenter/leave fire for every child element; survives re-renders
+  const depth = useRef(0); // dragenter/leave fire for every child element
+  const pickRef = useRef(pickFile);
+  useEffect(() => { pickRef.current = pickFile; }); // listeners below are added once but must call the latest pickFile
   useEffect(() => {
     const hasFile = (e: DragEvent) => e.dataTransfer?.types.includes("Files") ?? false;
     const enter = (e: DragEvent) => { if (hasFile(e) && !busyRef.current) { depth.current++; setDragging(true); } };
@@ -124,7 +126,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       const dt = new DataTransfer();
       dt.items.add(file);
       input.files = dt.files; // the form submits from the input, so drop and Browse behave the same
-      pickFile(file);
+      pickRef.current(file);
     };
     window.addEventListener("dragenter", enter);
     window.addEventListener("dragleave", leave);
@@ -136,7 +138,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       window.removeEventListener("dragover", over);
       window.removeEventListener("drop", drop);
     };
-  });
+  }, []);
   const canShort = !!clip && clip.duration <= MAX_SHORT_SECONDS;
   const transform = clip ? transformFor(format === "short" && !canShort ? "regular" : format, clip) : "none";
 
