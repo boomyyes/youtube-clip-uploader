@@ -10,10 +10,12 @@ import { MAX_SHORT_SECONDS, recommendFormat, transformFor } from "@/lib/shorts.m
 type Clip = { url: string; width: number; height: number; duration: number; still: boolean };
 
 const RESHAPE_NOTE: Record<string, string> = {
-  crop: "The middle of the frame will be cropped to vertical (9:16).",
+  crop: "It will be cropped to vertical (9:16). Slide to choose which part of the frame to keep.",
   pad: "It will be padded to widescreen (16:9) over a blurred copy, so YouTube doesn't make it a Short.",
   none: "",
 };
+
+const time = (t: number) => `${Math.floor(t / 60)}:${(t % 60).toFixed(1).padStart(4, "0")}`;
 
 function lowestFree(taken: number[] = []) {
   let n = 1;
@@ -77,6 +79,8 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
   // The chosen file's shape and length (read in the browser) drive the Short/Regular choice and preview.
   const [clip, setClip] = useState<Clip | null>(null);
   const [format, setFormat] = useState<"short" | "regular">("regular");
+  const [trim, setTrim] = useState<[number, number]>([0, 0]); // kept part, in seconds
+  const [cropX, setCropX] = useState(0.5); // where a Short is cropped from: 0 = left edge, 1 = right edge
   const urlRef = useRef<string | null>(null);
   const dropPreview = () => {
     if (urlRef.current) URL.revokeObjectURL(urlRef.current);
@@ -97,6 +101,8 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       if (urlRef.current !== url) return; // another file was picked meanwhile
       const c = { url, width: probe.videoWidth, height: probe.videoHeight, duration: probe.duration, still: matchMedia("(prefers-reduced-motion: reduce)").matches };
       setClip(c);
+      setTrim([0, c.duration]);
+      setCropX(0.5);
       setFormat(recommendFormat(c));
     };
     // Some formats (often MKV) can't be read by the browser: no preview, and it uploads as a regular video.
@@ -139,8 +145,12 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       window.removeEventListener("drop", drop);
     };
   }, []);
-  const canShort = !!clip && clip.duration <= MAX_SHORT_SECONDS;
-  const transform = clip ? transformFor(format === "short" && !canShort ? "regular" : format, clip) : "none";
+  // The kept part decides the format, so trimming a long clip can make it a Short.
+  const kept = clip ? { ...clip, duration: trim[1] - trim[0] } : null;
+  const trimmed = !!clip && (trim[0] > 0 || trim[1] < clip.duration);
+  const canShort = !!kept && kept.duration <= MAX_SHORT_SECONDS;
+  const chosen = format === "short" && !canShort ? "regular" : format;
+  const transform = kept ? transformFor(chosen, kept) : "none";
 
   async function submit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -171,10 +181,12 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
         path,
         game: data.get("game"),
         note: data.get("note"),
-        format: clip ? format : "regular",
+        format: clip ? chosen : "regular",
         width: clip?.width,
         height: clip?.height,
         duration: clip?.duration,
+        ...(trimmed && { trimStart: trim[0], trimEnd: trim[1] }),
+        ...(transform === "crop" && { cropX }),
       });
       form.reset();
       const sent = String(data.get("game"));
@@ -255,18 +267,40 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             <fieldset className="format-choice">
               <legend className="field-label">Format</legend>
               <div className="format-options">
-                <label className={`format-option ${format === "short" ? "is-selected" : ""}`}>
-                  <input type="radio" name="format" value="short" checked={format === "short"} disabled={!canShort} onChange={() => setFormat("short")} />
-                  YouTube Short {recommendFormat(clip) === "short" && <span className="optional">Recommended</span>}
+                <label className={`format-option ${chosen === "short" ? "is-selected" : ""}`}>
+                  <input type="radio" name="format" value="short" checked={chosen === "short"} disabled={!canShort} onChange={() => setFormat("short")} />
+                  YouTube Short {recommendFormat(kept!) === "short" && <span className="optional">Recommended</span>}
                   {!canShort && <span className="optional">Over 3 minutes</span>}
                 </label>
-                <label className={`format-option ${format === "regular" ? "is-selected" : ""}`}>
-                  <input type="radio" name="format" value="regular" checked={format === "regular"} onChange={() => setFormat("regular")} />
-                  Regular video {recommendFormat(clip) === "regular" && <span className="optional">Recommended</span>}
+                <label className={`format-option ${chosen === "regular" ? "is-selected" : ""}`}>
+                  <input type="radio" name="format" value="regular" checked={chosen === "regular"} onChange={() => setFormat("regular")} />
+                  Regular video {recommendFormat(kept!) === "regular" && <span className="optional">Recommended</span>}
                 </label>
               </div>
               {RESHAPE_NOTE[transform] && <p className="field-help"><Icon name="info" size={14} /> {RESHAPE_NOTE[transform]}</p>}
-              <FormatPreview src={clip.url} transform={transform} still={clip.still} label={`Preview of ${fileName} as a ${format === "short" ? "Short" : "regular video"}`} />
+              {clip.duration >= 2 && (
+                <div className="edit-sliders">
+                  <label>
+                    <span>Start <strong>{time(trim[0])}</strong></span>
+                    <input type="range" min={0} max={clip.duration} step={0.1} value={trim[0]} aria-valuetext={time(trim[0])}
+                      onChange={(e) => setTrim(([, end]) => [Math.min(Number(e.target.value), end - 1), end])} />
+                  </label>
+                  <label>
+                    <span>End <strong>{time(trim[1])}</strong></span>
+                    <input type="range" min={0} max={clip.duration} step={0.1} value={trim[1]} aria-valuetext={time(trim[1])}
+                      onChange={(e) => setTrim(([start]) => [start, Math.max(Number(e.target.value), start + 1)])} />
+                  </label>
+                  {transform === "crop" && (
+                    <label>
+                      <span>Crop position <strong>{cropX < 0.4 ? "Left" : cropX > 0.6 ? "Right" : "Centre"}</strong></span>
+                      <input type="range" min={0} max={1} step={0.01} value={cropX} aria-valuetext={`${Math.round(cropX * 100)}% from the left`}
+                        onChange={(e) => setCropX(Number(e.target.value))} />
+                    </label>
+                  )}
+                  <p className="field-help"><Icon name="info" size={14} /> Keeps {time(trim[1] - trim[0])}{trimmed ? ` of ${time(clip.duration)}` : " (the whole clip)"}. The full file is still uploaded; the cut happens after approval.</p>
+                </div>
+              )}
+              <FormatPreview src={clip.url} transform={transform} still={clip.still} trim={trimmed ? trim : null} cropX={cropX} label={`Preview of ${fileName} as a ${chosen === "short" ? "Short" : "regular video"}`} />
             </fieldset>
           )}
           <label className="field-label" htmlFor="game">
@@ -377,7 +411,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             Your clip becomes &quot;{name}&apos;s clip in {game || "[game]"} #
             {game ? lowestFree(used[game]) : "[n]"}&quot; when approved.
           </p>
-          {format === "short" && clip && <p className="muted">#Shorts is added to the description.</p>}
+          {chosen === "short" && clip && <p className="muted">#Shorts is added to the description.</p>}
         </div>
       </aside>
     </>

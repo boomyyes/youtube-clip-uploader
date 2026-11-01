@@ -47,7 +47,8 @@ One `status` field with fixed values:
 ## YouTube Shorts
 - YouTube has no API flag for Shorts: an upload that is vertical/square and <= 3 minutes becomes a Short automatically.
 - The upload page reads the clip's shape and length in the browser, recommends Short or Regular, lets the uploader choose, and previews the result. `clips.format` is the choice; `clips.transform` (`none`/`crop`/`pad`, from `lib/shorts.mjs`, computed on the server) is what the worker does: crop a wide clip to 9:16 for a Short, or pad a vertical clip to 16:9 over a blurred copy for a regular video. Over 3 minutes is always regular. Shorts get `#Shorts` in the description (migration 0009).
-- Reshaping downloads the approved file (still `If-Match` checked), runs ffmpeg, and uploads the result; a reshaped clip never resumes an old session. ffmpeg is preinstalled on GitHub Actions; `npm run worker` locally needs it on PATH, or the clip fails with a clear error (Retry lets Actions do it).
+- Simple editing at upload (migration 0010): the uploader can trim (`trim_start`/`trim_end`, at least 1 s kept, stored only when it cuts something) and pick where a Short is cropped from (`crop_x`, 0 = left, 1 = right; centre when null). The kept length decides Short vs regular. The full file is still uploaded and reviewed; the owner's preview plays only the kept part, and the worker cuts it. Checked by `checkEdits` in `lib/shorts.mjs`.
+- Reshaping (crop, pad and/or trim) downloads the approved file (still `If-Match` checked), runs ffmpeg, and uploads the result; a reshaped clip never resumes an old session. ffmpeg is preinstalled on GitHub Actions; `npm run worker` locally needs it on PATH, or the clip fails with a clear error (Retry lets Actions do it).
 
 ## Upload job
 - No jobs table and no queue service: the `clips` row is the job, so status lives in one place.

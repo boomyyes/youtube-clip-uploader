@@ -7,7 +7,7 @@ import { mkdtemp, open, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createClient } from "@supabase/supabase-js";
-import { ffmpegArgs } from "../lib/shorts.mjs";
+import { ffmpegArgs, needsEncode } from "../lib/shorts.mjs";
 import * as r2 from "../lib/r2.mjs";
 import { YouTubeError, accessTokenFromDb, msUntilQuotaReset, myChannel, sendUpload, startUpload, videoMetadata } from "../lib/youtube.mjs";
 
@@ -47,7 +47,7 @@ function ffmpeg(args) {
 
 const PIECE = 8 * 1024 * 1024;
 
-/** Downloads the approved file (If-Match on every piece) and crops/pads it (lib/shorts.mjs). Returns a local source. */
+/** Downloads the approved file (If-Match on every piece) and trims/crops/pads it (lib/shorts.mjs). Returns a local source. */
 async function reshape(clip, size, type) {
   const dir = await mkdtemp(join(tmpdir(), "clip-"));
   try {
@@ -58,7 +58,7 @@ async function reshape(clip, size, type) {
     } finally {
       await fh.close();
     }
-    await ffmpeg(ffmpegArgs(clip.transform, input, output, type));
+    await ffmpeg(ffmpegArgs(clip, input, output, type));
     const out = await open(output, "r");
     const { size: outSize } = await out.stat();
     const read = async (start, end) => {
@@ -77,7 +77,7 @@ async function upload(clip) {
   const file = await r2.head(clip.storage_path);
   if (!file) throw new Error("Clip file is missing from storage");
   if (!clip.approved_etag || file.etag !== clip.approved_etag) throw new Error("Clip file changed after it was approved; not uploading it");
-  const reshaped = clip.transform && clip.transform !== "none";
+  const reshaped = needsEncode(clip);
   // If-Match on every chunk: a swap mid-upload fails instead of mixing files.
   const src = reshaped
     ? await reshape(clip, file.size, file.type)
@@ -85,7 +85,7 @@ async function upload(clip) {
   try {
     if (FAKE) {
       await src.read(0, Math.min(src.size, 1024) - 1); // proves storage access without touching YouTube
-      log(reshaped ? `fake: reshaped (${clip.transform}) to ${src.size} bytes` : "fake: storage readable");
+      log(reshaped ? `fake: re-encoded (${clip.transform}, trim ${clip.trim_start ?? "-"}) to ${src.size} bytes` : "fake: storage readable");
       return `fake-${clip.id.slice(0, 8)}`;
     }
     const token = await accessTokenFromDb(db);
