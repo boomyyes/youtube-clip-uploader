@@ -35,18 +35,20 @@ class FatalError extends Error {}
 
 function ffmpeg(args) {
   return new Promise((resolve, reject) => {
-    const p = spawn("ffmpeg", ["-loglevel", "error", ...args], { stdio: ["ignore", "ignore", "pipe"] });
+    // Only PATH in its environment: ffmpeg handles untrusted files and must not be able to see the worker's secrets.
+    const p = spawn("ffmpeg", ["-loglevel", "error", ...args], { stdio: ["ignore", "ignore", "pipe"], env: { PATH: process.env.PATH } });
     let err = "";
     p.stderr.on("data", (d) => (err += d));
     p.on("error", (e) => reject(e.code === "ENOENT" ? new FatalError("ffmpeg not installed: install it or let GitHub Actions upload this clip") : e));
-    p.on("close", (code) => (code ? reject(new Error(`ffmpeg failed: ${err.slice(-300)}`)) : resolve()));
+    // Raw ffmpeg output stays in the run log only, never in the clip row.
+    p.on("close", (code) => (code ? (log("ffmpeg error:", err.slice(-1000)), reject(new FatalError("Couldn't convert this video (ffmpeg failed); see the worker log"))) : resolve()));
   });
 }
 
 const PIECE = 8 * 1024 * 1024;
 
 /** Downloads the approved file (If-Match on every piece) and crops/pads it (lib/shorts.mjs). Returns a local source. */
-async function reshape(clip, size) {
+async function reshape(clip, size, type) {
   const dir = await mkdtemp(join(tmpdir(), "clip-"));
   try {
     const input = join(dir, "in"), output = join(dir, "out.mp4");
@@ -56,7 +58,7 @@ async function reshape(clip, size) {
     } finally {
       await fh.close();
     }
-    await ffmpeg(ffmpegArgs(clip.transform, input, output));
+    await ffmpeg(ffmpegArgs(clip.transform, input, output, type));
     const out = await open(output, "r");
     const { size: outSize } = await out.stat();
     const read = async (start, end) => {
@@ -78,7 +80,7 @@ async function upload(clip) {
   const reshaped = clip.transform && clip.transform !== "none";
   // If-Match on every chunk: a swap mid-upload fails instead of mixing files.
   const src = reshaped
-    ? await reshape(clip, file.size)
+    ? await reshape(clip, file.size, file.type)
     : { size: file.size, type: file.type || "video/mp4", read: (start, end) => r2.readRange(clip.storage_path, start, end, clip.approved_etag), done: async () => {} };
   try {
     if (FAKE) {
