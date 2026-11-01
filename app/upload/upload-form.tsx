@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
-import { GAMES, MAX_BYTES, VIDEO_TYPES } from "@/lib/games";
+import { useEffect, useState } from "react";
+import { MAX_BYTES, VIDEO_TYPES, sortGames } from "@/lib/games";
+import { createClient } from "@/lib/supabase/browser";
 import Icon from "../pixel-icon";
 import { Notice } from "../ui";
 
@@ -39,8 +40,22 @@ function putFile(url: string, file: File, onProgress: (pct: number) => void) {
 }
 
 // used: clip numbers already taken per game; a new clip gets the lowest free one (migration 0007).
-export default function UploadForm({ name, used: initialUsed }: { name: string; used: Record<string, number[]> }) {
+export default function UploadForm({ name, used: initialUsed, games: initialGames }: { name: string; used: Record<string, number[]>; games: string[] }) {
   const [game, setGame] = useState("");
+  const [games, setGames] = useState(initialGames);
+  // Live game list: the owner edits it on /admin; re-read it on any change (Realtime on the games table).
+  useEffect(() => {
+    const supabase = createClient();
+    const reload = async () => {
+      const { data } = await supabase.from("games").select("name");
+      if (!data) return;
+      const list = sortGames(data.map((g) => g.name));
+      setGames(list);
+      setGame((g) => (list.includes(g) ? g : "")); // the owner removed the game this person had picked
+    };
+    const channel = supabase.channel("games").on("postgres_changes", { event: "*", schema: "public", table: "games" }, reload).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
   const [used, setUsed] = useState(initialUsed);
   const [progress, setProgress] = useState<number | null>(null);
   const [message, setMessage] = useState<{
@@ -160,7 +175,7 @@ export default function UploadForm({ name, used: initialUsed }: { name: string; 
               <option value="" disabled>
                 Choose a game
               </option>
-              {GAMES.map((g) => (
+              {games.map((g) => (
                 <option key={g}>{g}</option>
               ))}
             </select>

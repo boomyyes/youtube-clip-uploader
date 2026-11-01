@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import { GAMES, MAX_BYTES, VIDEO_TYPES } from "@/lib/games";
+import { MAX_BYTES, VIDEO_TYPES } from "@/lib/games";
 import { KEY_RE, head, remove } from "@/lib/r2.mjs";
 
 /** Step 2 of an upload: after the file is in R2, record the clip so the owner can review it. */
@@ -9,7 +9,8 @@ export async function POST(request: Request) {
   const p = await getProfile();
   if (!p?.approved) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   const { path, game, note } = await request.json().catch(() => ({}));
-  if (!(GAMES as readonly string[]).includes(game)) return NextResponse.json({ error: "Pick a game from the list." }, { status: 400 });
+  const { data: known } = typeof game === "string" ? await admin().from("games").select("name").eq("name", game).maybeSingle() : { data: null };
+  if (!known) return NextResponse.json({ error: "Pick a game from the list." }, { status: 400 });
   if (note != null && (typeof note !== "string" || note.length > 500)) {
     return NextResponse.json({ error: "Note must be 500 characters or fewer." }, { status: 400 });
   }

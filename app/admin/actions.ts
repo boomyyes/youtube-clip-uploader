@@ -5,6 +5,7 @@ import { admin } from "@/lib/supabase/admin";
 import { head, remove, reviewableBefore } from "@/lib/r2.mjs";
 import { decrypt } from "@/lib/crypto.mjs";
 import { revokeToken } from "@/lib/youtube.mjs";
+import { OTHER_GAME } from "@/lib/games";
 
 // Server actions are public POST endpoints: every one re-checks the owner.
 async function owner() {
@@ -56,6 +57,24 @@ export async function retryClip(f: FormData) {
   const db = await owner();
   const { error } = await db.from("clips").update({ status: "approved", attempts: 0, last_error: null }).eq("id", id(f)).eq("status", "failed");
   done(error?.message);
+}
+
+/** Adds a game to the upload list. Upload forms pick it up live (Realtime). */
+export async function addGame(f: FormData) {
+  const db = await owner();
+  const name = String(f.get("name") ?? "").trim();
+  if (name.length < 1 || name.length > 40 || /[<>]/.test(name)) done("Game names must be 1 to 40 characters, without < or >.");
+  const { error } = await db.from("games").insert({ name });
+  done(error ? (error.code === "23505" ? `${name} is already on the list.` : error.message) : `Added ${name}.`);
+}
+
+/** Removes a game from the upload list. Existing clips keep their game and numbering. */
+export async function removeGame(f: FormData) {
+  const db = await owner();
+  const name = String(f.get("name") ?? "");
+  if (name === OTHER_GAME) done(`${OTHER_GAME} always stays on the list.`);
+  const { error } = await db.from("games").delete().eq("name", name);
+  done(error?.message ?? `Removed ${name}.`);
 }
 
 /** Revokes the token with Google and deletes everything stored about the connection. */

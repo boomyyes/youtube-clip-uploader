@@ -2,9 +2,10 @@ import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
-import { approveClip, approveUser, disconnectYouTube, rejectClip, retryClip } from "./actions";
+import { addGame, approveClip, approveUser, disconnectYouTube, rejectClip, removeGame, retryClip } from "./actions";
 import Icon from "../pixel-icon";
 import { Notice, PageHeader, StatusPill } from "../ui";
+import { OTHER_GAME, sortGames } from "@/lib/games";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
@@ -17,7 +18,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
   await requireUser(true);
   const { msg, yt } = await searchParams;
   const db = admin();
-  const [{ data: conn }, { data: users }, { data: clips }, { data: recent }] = await Promise.all([
+  const [{ data: conn }, { data: users }, { data: clips }, { data: recent }, { data: games }] = await Promise.all([
     db.from("youtube_connection").select("channel_title, updated_at").eq("id", 1).maybeSingle(),
     db.from("profiles").select("id, display_name, email, created_at").eq("approved", false).order("created_at"),
     db.from("clips")
@@ -26,6 +27,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
       .order("created_at")
       .returns<Clip[]>(),
     db.from("clips").select("id, title, youtube_video_id").eq("status", "on_youtube").order("uploaded_at", { ascending: false }).limit(10),
+    db.from("games").select("name").order("name"),
   ]);
   const by = (s: string) => (clips ?? []).filter((c) => c.status === s);
   // Clips whose upload URL is still live can change, so they aren't shown for review yet.
@@ -88,6 +90,28 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
             ))}
           </div>
         ) : <p className="muted">Nobody waiting.</p>}
+      </section>
+
+      <section className="admin-section" aria-labelledby="games">
+        <div className="section-heading">
+          <div><span className="panel-kicker">UPLOAD OPTIONS</span><h2 id="games">Games <span className="count-badge">{games?.length ?? 0}</span></h2></div>
+          <Icon name="film" size={20} />
+        </div>
+        <div className="account-approval-list">
+          {sortGames((games ?? []).map((g) => g.name)).map((name) => (
+            <form key={name} action={removeGame} className="approval-row">
+              <input type="hidden" name="name" value={name} />
+              <div className="approval-person"><strong>{name}</strong>{name === OTHER_GAME && <span>Always available</span>}</div>
+              {name !== OTHER_GAME && <button type="submit" className="button button-ghost" aria-label={`Remove ${name}`}>Remove</button>}
+            </form>
+          ))}
+          <form action={addGame} className="approval-row">
+            <label htmlFor="new-game" className="sr-only">New game</label>
+            <input id="new-game" name="name" required maxLength={40} placeholder="Add a game, e.g. Fortnite" />
+            <button type="submit" className="button button-primary"><Icon name="check" /> Add</button>
+          </form>
+        </div>
+        <p className="muted">Changes show up instantly on everyone&apos;s upload page. Removing a game doesn&apos;t touch clips already sent.</p>
       </section>
 
       <section className="admin-section" aria-labelledby="review">
