@@ -1,11 +1,11 @@
 /* Landing page (generated design, from the "Bananas" landing build). Every rule is scoped under .landing so it
    can't leak into the app's own classes (.step, .eyebrow, .footer-links...). */
 .landing {
-  --ink: #0a0d12; --panel: #171f2d; --line: #2d394b; --text: #f4f7fb; --muted: #a9b4c7;
-  --yellow: #f5c842; --mint: #b6f36b; --coral: #ff8a70; --amber: #f9b224; --orange: #e8412c;
+  --ink: #000; --panel: #0a0a0a; --line: rgb(255 255 255 / .16); --text: #fff; --muted: #b5b5b5;
+  --yellow: #ffe135; --mint: #b6f36b; --coral: #ff8a70; --amber: #f9b224; --orange: #e8412c;
   --font-head: var(--f-display), "Space Grotesk", sans-serif; --font-mono: var(--f-mono), "IBM Plex Mono", monospace;
   --pad-x: 24px; --section-y: clamp(80px, 12vh, 140px);
-  position: relative; background: var(--ink); color: var(--text); font-family: var(--font-head); overflow-x: clip;
+  position: relative; background: transparent; color: var(--text); font-family: var(--font-head); overflow-x: clip;
 }
 .landing ::selection { background: var(--yellow); color: var(--ink); }
 .landing :focus-visible { outline: 2px solid var(--yellow); outline-offset: 3px; border-radius: 1px; box-shadow: none; }
@@ -97,3 +97,10 @@ body:has(.landing) .main-content { max-width: none; padding: 0; }
   .landing .marquee-track, .landing .eyebrow-block, .landing .hud-dot { animation: none; }
   .landing .btn, .landing .btn-primary:hover, .landing .btn-ghost:hover, .landing .step, .landing .step-icon { transition: none; transform: none; }
 }
+
+/* Editorial revamp: huge tight uppercase headline, pill buttons, no glow */
+.landing .hero-title { text-transform: uppercase; line-height: .86; letter-spacing: -.045em; font-size: clamp(52px, 8.6vw, 140px); }
+.landing .hero-copy { max-width: 860px; }
+.landing .btn { border-radius: 999px; }
+.landing .btn-primary:hover { box-shadow: none; }
+.landing .nav { background: rgb(0 0 0 / .8); border-bottom-color: var(--line); }

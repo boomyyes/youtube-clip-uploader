@@ -4,9 +4,10 @@ import Icon from "./pixel-icon";
 export function PageHeader({ eyebrow, title, children, action }: { eyebrow: string; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
   return (
     <header className="page-header">
+      <p className="page-index"><span>{eyebrow}</span><span>Bananas All Over The World</span></p>
       <div>
         <p className="eyebrow">{eyebrow}</p>
-        <h1>{title}</h1>
+        <h1>{title.replace(/[.!]$/, "")}<em>.</em></h1>
         {children && <p className="page-lede">{children}</p>}
       </div>
       {action && <div className="page-header-action">{action}</div>}

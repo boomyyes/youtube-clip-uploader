@@ -1,0 +1,128 @@
+"use client";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { ShaderMaterial } from "three";
+import { usePathname } from "next/navigation";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { useReducedMotion } from "framer-motion";
+
+// One liquid-chrome object per page, ray-marched in a fragment shader (no model files).
+// Shapes: 0 banana, 1 upload arrow, 2 play, 3 tick. Changing page blends the old shape into the new one.
+// Distance functions after Inigo Quilez (iquilezles.org/articles/distfunctions).
+const SHAPE_FOR: Record<string, number> = { "/upload": 1, "/clips": 2, "/admin": 3, "/admin/members": 3 };
+const MORPH_SECONDS = 0.8;
+
+const frag = /* glsl */ `
+precision highp float;
+uniform vec2 uRes; uniform vec2 uMouse; uniform float uTime; uniform float uMix; uniform int uFrom; uniform int uTo;
+mat2 rot(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
+float capsule(vec3 p, vec3 a, vec3 b, float r){ vec3 pa=p-a, ba=b-a; float h=clamp(dot(pa,ba)/dot(ba,ba),0.,1.); return length(pa-ba*h)-r; }
+float banana(vec3 p){
+  p.xy = rot(-0.5)*p.xy; p.y += 0.55;
+  vec2 sc = vec2(sin(1.05), cos(1.05)); float ra = 0.95;
+  vec3 q = p; q.x = abs(q.x);
+  float k = (sc.y*q.x > sc.x*q.y) ? dot(q.xy, sc) : length(q.xy);
+  float t = clamp(atan(q.x, q.y) / 1.05, 0., 1.);
+  float d = sqrt(dot(q,q) + ra*ra - 2.*ra*k) - 0.24*(1. - 0.6*t*t);
+  return min(d, capsule(p, vec3(-0.85, 0.5, 0.), vec3(-0.98, 0.42, 0.), 0.06)); // stem
+}
+float arrow(vec3 p){
+  float d = capsule(p, vec3(0.,-0.75,0.), vec3(0.,0.55,0.), 0.17);
+  d = min(d, capsule(p, vec3(0.,0.78,0.), vec3(-0.52,0.26,0.), 0.17));
+  return min(d, capsule(p, vec3(0.,0.78,0.), vec3(0.52,0.26,0.), 0.17));
+}
+float play(vec3 p){
+  p.xy = vec2(-p.y, p.x); // point right
+  vec3 q = abs(p); vec2 h = vec2(0.95, 0.22);
+  return max(q.z - h.y, max(q.x*0.866025 + p.y*0.5, -p.y) - h.x*0.5) - 0.12;
+}
+float tick(vec3 p){
+  return min(capsule(p, vec3(-0.6,0.05,0.), vec3(-0.15,-0.42,0.), 0.18), capsule(p, vec3(-0.15,-0.42,0.), vec3(0.65,0.55,0.), 0.18));
+}
+float shape(int i, vec3 p){ return i==1 ? arrow(p) : i==2 ? play(p) : i==3 ? tick(p) : banana(p); }
+float map(vec3 p){
+  p.xz = rot(0.45*sin(uTime*0.35) + uMouse.x*0.5)*p.xz;
+  p.yz = rot(-uMouse.y*0.35)*p.yz;
+  return mix(shape(uFrom, p), shape(uTo, p), smoothstep(0., 1., uMix));
+}
+vec3 normalAt(vec3 p){ vec2 e = vec2(1.,-1.)*0.0015; return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx)); }
+// Studio: softbox top-left, strip light right, banana-yellow bounce from below, black everywhere else.
+vec3 env(vec3 r){
+  vec3 c = vec3(0.02);
+  c += vec3(1.3) * smoothstep(0.6, 0.92, dot(r, normalize(vec3(-0.6, 0.75, 0.3))));
+  c += vec3(1.1) * smoothstep(0.72, 0.8, r.x) * smoothstep(0.55, 0.0, abs(r.y));
+  c += vec3(1.0, 0.88, 0.21) * 1.2 * smoothstep(-0.15, -0.75, r.y);
+  return c;
+}
+void main(){
+  vec2 uv = (gl_FragCoord.xy*2. - uRes) / uRes.y;
+  vec3 ro = vec3(0., 0., 4.4), rd = normalize(vec3(uv, -1.9));
+  float t = 0.; bool hit = false;
+  for (int i = 0; i < 90; i++) { float d = map(ro + rd*t); if (d < 0.001) { hit = true; break; } t += d; if (t > 8.) break; }
+  if (!hit) { gl_FragColor = vec4(0.); return; }
+  vec3 n = normalAt(ro + rd*t);
+  float fres = pow(1. - max(dot(n, -rd), 0.), 3.);
+  vec3 col = env(reflect(rd, n)) * mix(0.75, 1.15, fres);
+  gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.);
+}`;
+const vert = /* glsl */ `void main(){ gl_Position = vec4(position.xy, 0., 1.); }`;
+
+// Starts as the banana, so the first page load morphs from the banana into that page's shape.
+const initialUniforms = () => ({
+  uRes: { value: [1, 1] }, uMouse: { value: [0, 0] }, uTime: { value: 0 },
+  uMix: { value: 1 }, uFrom: { value: 0 }, uTo: { value: 0 },
+});
+
+function Scene({ target }: { target: number }) {
+  const mat = useRef<ShaderMaterial>(null);
+  const [uniforms] = useState(initialUniforms);
+  const mouse = useRef([0, 0]);
+  useEffect(() => {
+    const move = (e: PointerEvent) => { mouse.current = [e.clientX / innerWidth * 2 - 1, e.clientY / innerHeight * 2 - 1]; };
+    addEventListener("pointermove", move);
+    return () => removeEventListener("pointermove", move);
+  }, []);
+  // Uniforms are written through the material (what the GPU actually reads), never through React state.
+  useFrame((state, dt) => {
+    const u = mat.current?.uniforms;
+    if (!u) return;
+    if (u.uTo.value !== target) {
+      u.uFrom.value = u.uMix.value < 0.5 ? u.uFrom.value : u.uTo.value;
+      u.uTo.value = target;
+      u.uMix.value = 0;
+    }
+    u.uTime.value += dt;
+    u.uMix.value = Math.min(1, u.uMix.value + dt / MORPH_SECONDS);
+    const [mx, my] = u.uMouse.value;
+    u.uMouse.value = [mx + (mouse.current[0] - mx) * 0.06, my + (mouse.current[1] - my) * 0.06];
+    const { width, height } = state.gl.domElement;
+    u.uRes.value = [width, height];
+  });
+  return (
+    <mesh frustumCulled={false}>
+      <planeGeometry args={[2, 2]} />
+      <shaderMaterial ref={mat} vertexShader={vert} fragmentShader={frag} uniforms={uniforms} transparent />
+    </mesh>
+  );
+}
+
+const noop = () => () => {};
+const hasWebGL = () => { try { return !!document.createElement("canvas").getContext("webgl"); } catch { return false; } };
+
+export default function ChromeShape() {
+  const path = usePathname();
+  const reduced = useReducedMotion();
+  const webgl = useSyncExternalStore(noop, hasWebGL, () => false);
+  if (path === "/login" || path.startsWith("/privacy") || path.startsWith("/terms")) return null;
+  const target = SHAPE_FOR[path] ?? 0;
+  return (
+    <div className="chrome-shape" aria-hidden="true">
+      {webgl && !reduced ? (
+        <Canvas dpr={[1, 1.5]} gl={{ alpha: true, antialias: false }} fallback={<img src="/assets/chrome-banana.png" alt="" />}>
+          <Scene target={target} />
+        </Canvas>
+      ) : (
+        <img src="/assets/chrome-banana.png" alt="" />
+      )}
+    </div>
+  );
+}

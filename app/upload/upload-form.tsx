@@ -5,6 +5,11 @@ import { createClient } from "@/lib/supabase/browser";
 import Icon from "../pixel-icon";
 import { Notice } from "../ui";
 import FormatPreview from "../format-preview";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Slider } from "@/components/ui/slider";
+import { Progress } from "@/components/ui/progress";
 import { MAX_SHORT_SECONDS, recommendFormat, transformFor } from "@/lib/shorts.mjs";
 
 type Clip = { url: string; width: number; height: number; duration: number; still: boolean };
@@ -237,7 +242,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
           <label className="field-label" htmlFor="file">
             Video file <span className="required">Required</span>
           </label>
-          <div className={`file-drop ${fileName ? "has-file" : ""}`}>
+          <div className={`file-drop ${fileName ? "has-file" : ""}`} data-cursor="Drop">
             <input
               ref={fileRef}
               id="file"
@@ -279,21 +284,19 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
               {RESHAPE_NOTE[transform] && <p className="field-help"><Icon name="info" size={14} /> {RESHAPE_NOTE[transform]}</p>}
               {clip.duration >= 2 && (
                 <div className="edit-sliders">
-                  <label>
-                    <span>Start <strong>{time(trim[0])}</strong></span>
-                    <input type="range" min={0} max={clip.duration} step={0.1} value={trim[0]} aria-valuetext={time(trim[0])}
-                      onChange={(e) => setTrim(([, end]) => [Math.min(Number(e.target.value), end - 1), end])} />
-                  </label>
-                  <label>
-                    <span>End <strong>{time(trim[1])}</strong></span>
-                    <input type="range" min={0} max={clip.duration} step={0.1} value={trim[1]} aria-valuetext={time(trim[1])}
-                      onChange={(e) => setTrim(([start]) => [start, Math.max(Number(e.target.value), start + 1)])} />
-                  </label>
+                  <div>
+                    <span className="field-label-row"><span className="field-label">Trim</span><strong>{time(trim[0])} → {time(trim[1])}</strong></span>
+                    {/* at least 1 s kept: 10 steps of 0.1 s between the handles */}
+                    <Slider min={0} max={clip.duration} step={0.1} minStepsBetweenThumbs={10} value={trim} data-cursor="Drag"
+                      thumbLabels={["Trim start", "Trim end"]} thumbText={[time(trim[0]), time(trim[1])]}
+                      onValueChange={([start, end]) => setTrim([start, end])} />
+                  </div>
                   {transform === "crop" && (
                     <label>
                       <span>Crop position <strong>{cropX < 0.4 ? "Left" : cropX > 0.6 ? "Right" : "Centre"}</strong></span>
-                      <input type="range" min={0} max={1} step={0.01} value={cropX} aria-valuetext={`${Math.round(cropX * 100)}% from the left`}
-                        onChange={(e) => setCropX(Number(e.target.value))} />
+                      <Slider min={0} max={1} step={0.01} value={[cropX]} data-cursor="Drag"
+                        thumbLabels={["Crop position"]} thumbText={[`${Math.round(cropX * 100)}% from the left`]}
+                        onValueChange={([x]) => setCropX(x)} />
                     </label>
                   )}
                   <p className="field-help"><Icon name="info" size={14} /> Keeps {time(trim[1] - trim[0])}{trimmed ? ` of ${time(clip.duration)}` : " (the whole clip)"}. The full file is still uploaded; the cut happens after approval.</p>
@@ -306,7 +309,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             Game <span className="required">Required</span>
           </label>
           {/* Type to filter the list; an existing name snaps to its listed spelling, a new one is added on upload. */}
-          <input
+          <Input
             id="game"
             name="game"
             list="game-list"
@@ -330,7 +333,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             </label>
             <span className="char-count">{noteLength} / 500</span>
           </div>
-          <textarea
+          <Textarea
             id="note"
             name="note"
             maxLength={500}
@@ -342,19 +345,10 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
         {busy && (
           <div className="progress-block">
             <div className="progress-top">
-              <label htmlFor="progress">Uploading {fileName}</label>
+              <span>Uploading {fileName}</span>
               <strong>{progress}%</strong>
             </div>
-            <progress
-              id="progress"
-              className="sr-only"
-              max={100}
-              value={progress}
-              aria-valuetext={`${progress}%`}
-            />
-            <div className="progress-track" aria-hidden="true">
-              <span style={{ width: `${progress}%` }} />
-            </div>
+            <Progress id="progress" value={progress} aria-label={`Uploading ${fileName}`} aria-valuetext={`${progress}%`} />
             <p className="field-help">
               Your form is locked while the file is uploading.
             </p>
@@ -364,14 +358,10 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
           {busy ? `Uploading, ${progress}%` : ""}
         </p>
         <div className="form-actions">
-          <button
-            type="submit"
-            className="button button-primary"
-            disabled={busy}
-          >
+          <Button type="submit" size="lg" className="rounded-full" disabled={busy} data-cursor="Send">
             <Icon name="upload" />
-            {busy ? "Uploading…" : "Upload clip"}
-          </button>
+            {busy ? "Uploading…" : "Send for review"}
+          </Button>
           <span className="form-safe">
             <Icon name="check" size={14} /> Private until approved
           </span>

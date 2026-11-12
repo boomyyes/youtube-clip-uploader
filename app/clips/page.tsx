@@ -13,7 +13,7 @@ export default async function MyClips() {
     .order("created_at", { ascending: false });
   return (
     <div className="content-page">
-      <PageHeader eyebrow="MEMBER DESK / 02" title="My clips" action={<Link href="/upload" className="button button-primary"><Icon name="upload" /> New upload</Link>}>
+      <PageHeader eyebrow="MEMBER DESK / 02" title="My clips" action={<Link href="/upload" className="button button-primary" data-cursor="Upload"><Icon name="upload" /> New upload</Link>}>
         Everything you&apos;ve sent, from first upload to the yellow light of YouTube.
       </PageHeader>
       {!clips?.length ? (

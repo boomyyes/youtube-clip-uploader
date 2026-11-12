@@ -76,7 +76,7 @@ One `status` field with fixed values:
 ## UX and accessibility
 - A "My clips" page: each clip's status, plus the reason when it is rejected.
 - Labeled form fields, an upload progress bar that screen readers announce, and approve/reject buttons that work from the keyboard.
-- Use a stock component library. No custom design in v1.
+- Design: Figma "Clip Desk Revamp" (editorial: pure black, white type, one banana accent #FFE135). Controls are shadcn/ui (`components/ui`, Tailwind v4 without preflight, tokens in `app/globals.css`); don't hand-build controls. Own visuals: `app/chrome-shape.tsx` (ray-marched chrome object that morphs per page) and `app/cursor.tsx` (`data-cursor="Label"` shows a label).
 
 ## Dev setup
 - Commit `.env.example`. All other `.env*` files are gitignored.

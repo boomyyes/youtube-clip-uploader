@@ -1,42 +1,11 @@
 "use client";
-import { lazy, Suspense, useSyncExternalStore } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { CHANNEL_URL } from "./channel";
 
-const BananaScene = lazy(() => import("./BananaScene"));
-
-let webglCache;
-function hasWebGL() {
-  if (webglCache !== undefined) return webglCache;
-  return (webglCache = detectWebGL());
-}
-function detectWebGL() {
-  try {
-    const c = document.createElement("canvas");
-    return !!(window.WebGLRenderingContext && (c.getContext("webgl2") || c.getContext("webgl")));
-  } catch {
-    return false;
-  }
-}
-
-// No WebGL / reduced motion / still loading: a still render of the scene instead.
-function ScenePoster() {
-  return (
-    <div className="scene-layer scene-fallback" aria-hidden="true">
-      <img src="/assets/banana-scene-fallback.jpg" alt="" loading="lazy" decoding="async" />
-      <div className="scene-fallback-tint" />
-    </div>
-  );
-}
-
 const EASE = [0.16, 1, 0.3, 1];
-const noop = () => () => {};
 
 export default function Hero({ cta }) {
   const reduced = useReducedMotion();
-  // false on the server (no `document`), real answer in the browser, without a hydration mismatch.
-  const webgl = useSyncExternalStore(noop, hasWebGL, () => false);
-  const showScene = webgl && !reduced;
 
   const line = (i) => ({
     initial: { y: reduced ? "0%" : "115%" },
@@ -51,14 +20,7 @@ export default function Hero({ cta }) {
 
   return (
     <section className="hero">
-      {showScene ? (
-        <Suspense fallback={<ScenePoster />}>
-          <BananaScene />
-        </Suspense>
-      ) : (
-        <ScenePoster />
-      )}
-      <div className="hero-vignette" aria-hidden="true" />
+      {/* the chrome banana is the layout's <ChromeShape /> (fixed, top right) */}
 
       <div className="hero-inner">
         <div className="hero-copy">
@@ -69,11 +31,11 @@ export default function Hero({ cta }) {
 
           <h1 className="hero-title">
             <span className="mask">
-              <motion.span className="mask-line" {...line(0)}>Drop the clip.</motion.span>
+              <motion.span className="mask-line" {...line(0)}>Your clip.</motion.span>
             </span>
             <span className="mask">
               <motion.span className="mask-line" {...line(1)}>
-                We&rsquo;ll handle <span className="accent">the rest.</span>
+                Our <span className="accent">channel.</span>
               </motion.span>
             </span>
           </h1>

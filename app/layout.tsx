@@ -4,7 +4,8 @@ import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { getProfile } from "@/lib/auth";
 import Icon, { type IconName } from "./pixel-icon";
 import NavLinks from "./nav-links";
-import BananaRain from "./banana-rain";
+import ChromeShape from "./chrome-shape";
+import Cursor from "./cursor";
 import { Logo } from "./ui";
 import "./globals.css";
 
@@ -27,7 +28,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${display.variable} ${mono.variable}`}>
       <body>
         <div className="app-frame">
-          <BananaRain />
+          <ChromeShape />
+          <Cursor />
           <header className="topbar">
             <div className="topbar-inner">
               <Logo />

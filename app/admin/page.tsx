@@ -5,6 +5,7 @@ import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
 import { addGame, approveClip, approveUser, disconnectYouTube, rejectClip, removeGame, retryClip } from "./actions";
 import Icon from "../pixel-icon";
 import { Notice, PageHeader, StatusPill } from "../ui";
+import { Button } from "@/components/ui/button";
 import FormatPreview from "../format-preview";
 import { OTHER_GAME, sortGames } from "@/lib/games";
 
@@ -45,7 +46,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
 
   return (
     <div className="content-page admin-page">
-      <PageHeader eyebrow="OWNER CONSOLE / 01" title="Admin" action={<Link href="/admin/members" className="button button-secondary"><Icon name="users" /> Members</Link>}>
+      <PageHeader eyebrow="OWNER CONSOLE / 01" title="Review queue" action={<Link href="/admin/members" className="button button-secondary"><Icon name="users" /> Members</Link>}>
         Approve the crew, clear the review queue and keep the YouTube pipeline moving.
       </PageHeader>
       {(msg || yt) && <Notice tone="success">{msg ?? yt}</Notice>}
@@ -87,7 +88,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                 <div className="approval-avatar" aria-hidden="true">{initial(u.display_name)}</div>
                 <div className="approval-person"><strong>{u.display_name}</strong><span>{u.email}</span></div>
                 <span className="approval-date">Joined {new Date(u.created_at).toLocaleDateString("en-IN")}</span>
-                <button type="submit" className="button button-primary" aria-label={`Approve ${u.display_name}`}><Icon name="check" /> Approve</button>
+                <Button type="submit" className="rounded-full" aria-label={`Approve ${u.display_name}`}><Icon name="check" /> Approve</Button>
               </form>
             ))}
           </div>
@@ -110,7 +111,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
           <form action={addGame} className="approval-row">
             <label htmlFor="new-game" className="sr-only">New game</label>
             <input id="new-game" name="name" required maxLength={40} placeholder="Add a game, e.g. Fortnite" />
-            <button type="submit" className="button button-primary"><Icon name="check" /> Add</button>
+            <Button type="submit" className="rounded-full"><Icon name="check" /> Add</Button>
           </form>
         </div>
         <p className="muted">Changes show up instantly on everyone&apos;s upload page. Removing a game doesn&apos;t touch clips already sent.</p>
@@ -162,9 +163,9 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   <form action={approveClip} className="inline-form">
                     <input type="hidden" name="id" value={c.id} />
                     <input type="hidden" name="etag" value={pv?.etag ?? ""} />
-                    <button type="submit" className="button button-primary" aria-label={`Approve ${c.game} clip by ${who}`}><Icon name="check" /> Approve</button>
+                    <Button type="submit" size="lg" className="rounded-full" data-cursor="Approve" aria-label={`Approve ${c.game} clip by ${who}`}><Icon name="check" /> Approve</Button>
                   </form>
-                  <button type="submit" form={`reject-${c.id}`} className="button button-secondary" aria-label={`Reject ${c.game} clip by ${who}`}>Reject</button>
+                  <Button type="submit" form={`reject-${c.id}`} size="lg" variant="outline" className="rounded-full text-destructive" aria-label={`Reject ${c.game} clip by ${who}`}>Reject</Button>
                 </div>
               </article>
             );
@@ -193,7 +194,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                   {c.status === "failed" && (
                     <form action={retryClip}>
                       <input type="hidden" name="id" value={c.id} />
-                      <button type="submit" className="button button-secondary" aria-label={`Retry ${c.title}`}><Icon name="refresh" size={15} /> Retry</button>
+                      <Button type="submit" variant="outline" className="rounded-full" aria-label={`Retry ${c.title}`}><Icon name="refresh" size={15} /> Retry</Button>
                     </form>
                   )}
                 </span>

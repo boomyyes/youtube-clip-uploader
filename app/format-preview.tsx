@@ -18,13 +18,13 @@ export default function FormatPreview({ src, transform, still = false, label, tr
     : {};
   if (transform === "pad")
     return (
-      <div className="format-preview format-pad">
+      <div className="format-preview format-pad" data-cursor="Play">
         <video src={src} className="format-pad-bg" muted playsInline aria-hidden="true" {...keep} {...(still ? {} : { autoPlay: true, loop: true })} />
         <video src={src} className="format-pad-fg" aria-label={label} {...keep} {...play} />
       </div>
     );
   return (
-    <div className={`format-preview ${transform === "crop" ? "format-short" : "format-none"}`}>
+    <div className={`format-preview ${transform === "crop" ? "format-short" : "format-none"}`} data-cursor="Play">
       <video src={src} aria-label={label} style={transform === "crop" ? { objectPosition: `${cropX * 100}% 50%` } : undefined} {...keep} {...play} />
     </div>
   );

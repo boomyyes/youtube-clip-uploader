@@ -1,27 +1,64 @@
-/* "Arcade Ops Console" design, ported from the bananas.zip mockup (Manus). Clip status uses ripeness colours. */
+/* Tailwind only for the shadcn/ui components; no preflight, so the page CSS below keeps its own base styles. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* "Editorial" design (Figma: Clip Desk Revamp): pure black, white type, one banana accent, no glows. */
 :root {
-  --ink: #0a0d12;
-  --shell: #0e131b;
-  --panel: #171f2d;
-  --panel-raised: #202a3a;
-  --panel-soft: #121923;
-  --line: #2d394b;
-  --line-bright: #405069;
-  --text: #f4f7fb;
-  --muted: #a9b4c7;
-  --dim: #738097;
-  --banana: #f5c842;
-  --banana-light: #ffe8a0;
-  --banana-deep: #c89b10;
-  --green: #b6f36b;
-  --green-deep: #47682c;
-  --coral: #ff8a70;
-  --blue: #89b7ff;
+  --ink: #000;
+  --shell: #000;
+  --panel: #0a0a0a;
+  --panel-raised: #151515;
+  --panel-soft: #0a0a0a;
+  --line: rgb(255 255 255 / .16);
+  --line-bright: rgb(255 255 255 / .28);
+  --text: #fff;
+  --muted: #b5b5b5;
+  --dim: #8a8a8a;
+  --banana: #ffe135;
+  --banana-light: #fff08a;
+  --banana-deep: #c9ad00;
+  --green: #fff;
+  --green-deep: #555;
+  --coral: #ff6a5c;
+  --blue: #fff;
   --mono: var(--f-mono), "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   --display: var(--f-display), "Space Grotesk", Inter, ui-sans-serif, system-ui, sans-serif;
-  --radius: 3px;
-  --shadow: 0 18px 50px rgba(0, 0, 0, .28);
-  --focus: 0 0 0 3px rgba(245, 200, 66, .35);
+  --radius: 22px;
+  --shadow: none;
+  --focus: 0 0 0 3px rgb(255 225 53 / .55);
+  /* shadcn/ui tokens */
+  --background: #000;
+  --foreground: #fff;
+  --primary: #ffe135;
+  --primary-foreground: #000;
+  --secondary: #151515;
+  --secondary-foreground: #fff;
+  --muted-foreground: #b5b5b5;
+  --accent: #222;
+  --accent-foreground: #fff;
+  --destructive: #ff6a5c;
+  --border: rgb(255 255 255 / .16);
+  --input: rgb(255 255 255 / .22);
+  --ring: #ffe135;
+}
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--panel-raised);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --font-sans: var(--display);
+  --font-mono: var(--mono);
 }
 
 * { box-sizing: border-box; }
@@ -244,8 +281,6 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .legal-copy h2:first-of-type { margin-top: 0; }
 .legal-copy h2 { margin-top: 35px; }
 .legal-copy strong { color: var(--text); }
-/* Banana rain sits behind everything; panels are opaque so text stays readable. */
-.banana-rain { position: fixed; inset: 0; z-index: 0; width: 100vw; height: 100vh; opacity: .5; pointer-events: none; }
 .main-content, .site-footer { position: relative; z-index: 1; }
 .site-footer { background: rgb(11 16 23 / .92); }
 .file-drop:focus-within { box-shadow: var(--focus); }
@@ -256,8 +291,6 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .login-frame { background: transparent; }
 .login-left { background: radial-gradient(circle at 13% 52%, rgba(245, 200, 66, .13), transparent 31%), linear-gradient(145deg, rgb(17 23 34 / .55), rgb(10 13 18 / .35) 72%); }
 .login-right { background: rgb(12 17 24 / .88); }
-/* keep hero copy readable over the rain */
-.login-hero, .login-footer-line, .page-header { text-shadow: 0 0 6px var(--ink), 0 0 14px var(--ink), 0 0 24px var(--ink); }
 
 /* YouTube Shorts: format choice + preview framed like the worker's reshape (lib/shorts.mjs) */
 .format-choice { min-width: 0; margin: 0 0 22px; padding: 0; border: 0; }
@@ -288,3 +321,79 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .drop-overlay > div { display: grid; justify-items: center; gap: 10px; padding: 48px 64px; color: var(--banana); border: 2px dashed var(--banana); background: rgba(245, 200, 66, .06); }
 .drop-overlay strong { color: var(--text); font-size: 28px; }
 .drop-overlay span { color: var(--muted); font: 11px var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+
+/* ---- Editorial revamp (Figma: Clip Desk Revamp) ---- */
+.app-frame { background: #000; }
+.topbar { background: rgb(0 0 0 / .9); border-bottom-color: var(--line); }
+.banana-mark { border: 0; background: none; box-shadow: none; transform: none; }
+.brand-name strong { color: var(--text); }
+.nav-link { border-radius: 999px; }
+.nav-link.is-active { color: #000; background: #fff; border-color: #fff; }
+.user-avatar { background: #fff; }
+/* Numbered index strip + huge tight headline */
+.page-header { display: block; margin-bottom: 56px; text-shadow: none; }
+.page-index { display: flex; justify-content: space-between; gap: 16px; margin: -40px 0 48px; padding: 18px 0; border-block: 1px solid var(--line); font: 500 11px var(--mono); letter-spacing: .1em; text-transform: uppercase; color: var(--dim); }
+.page-index span:first-child { color: var(--text); }
+.page-header .eyebrow { display: none; }
+.page-header h1 { max-width: 12ch; margin-bottom: 24px; font-size: clamp(56px, 10.5vw, 176px); line-height: .86; letter-spacing: -.045em; text-transform: uppercase; }
+.page-header h1 em { font-style: normal; color: var(--banana); }
+.page-header-action { margin-top: 24px; }
+.page-lede { font-size: 19px; color: var(--muted); }
+/* Surfaces: flat, hairline, rounded */
+.panel, .aside-card, .login-card, .legal-aside, .pipeline-table, .account-approval-list, .review-card, .connection-card, .recent-list a { border-radius: var(--radius); box-shadow: none; overflow: hidden; }
+.accent-card { background: var(--banana); color: #000; border-color: var(--banana); }
+.accent-card::after { content: none; }
+.accent-card .panel-kicker, .accent-card .step > span, .accent-card .step p { color: #000; }
+.panel-kicker, .eyebrow, .section-heading > svg, .panel-header-icon { color: var(--dim); }
+.button { border-radius: 999px; min-height: 44px; padding: 0 20px; font-size: 14px; }
+.button:hover:not(:disabled) { transform: none; }
+.button-secondary { background: #151515; border-color: var(--line-bright); }
+.button-secondary:hover:not(:disabled) { color: #000; background: #fff; border-color: #fff; }
+.file-drop { min-height: 220px; flex-direction: column; justify-content: center; gap: 14px; padding: 40px; border: 0; border-radius: var(--radius); background: var(--banana); color: #000; text-align: center; }
+.file-drop:hover, .file-drop.has-file { background: var(--banana-light); }
+.file-drop strong { max-width: 100%; color: #000; font-size: clamp(24px, 3vw, 40px); letter-spacing: -.03em; white-space: normal; }
+.file-drop span:not(.file-browse) { color: rgb(0 0 0 / .7); font-family: var(--mono); font-size: 11px; text-transform: uppercase; letter-spacing: .08em; }
+.file-drop-icon { color: #000; border: 0; background: none; }
+.file-browse { margin: 0; padding: 10px 18px; color: #fff; background: #000; border: 0; border-radius: 999px; }
+/* Status: white = waiting, banana = live, coral = problem */
+.status-pill { border-radius: 999px; padding: 6px 10px; }
+.status-waiting, .status-approved, .status-uploading { color: #fff; border-color: var(--line-bright); background: transparent; }
+.status-online { color: #000; border-color: var(--banana); background: var(--banana); }
+.status-rejected, .status-failed { color: var(--coral); border-color: rgb(255 106 92 / .45); background: transparent; }
+.notice { border-radius: 14px; }
+.notice-success, .notice-info { color: #fff; border-color: var(--line-bright); background: transparent; }
+.login-hero h1 { text-transform: uppercase; line-height: .86; letter-spacing: -.045em; }
+.login-hero, .login-footer-line { text-shadow: none; }
+.login-left, .login-right { background: #000; }
+.login-left::after { content: none; }
+.signal-light, .stamp-dot { background: var(--banana); box-shadow: none; }
+.site-footer { background: #000; }
+.drop-overlay { background: rgb(0 0 0 / .85); }
+.drop-overlay > div { border-radius: var(--radius); color: #000; border: 0; background: var(--banana); }
+.drop-overlay strong { color: #000; font-size: 48px; letter-spacing: -.03em; text-transform: uppercase; }
+.drop-overlay span { color: rgb(0 0 0 / .7); }
+/* shadcn slider/progress sit inside the old form layout */
+.edit-sliders [data-slot="slider"] { margin: 6px 0 4px; }
+.progress-block [data-slot="progress"] { margin-top: 10px; }
+
+/* Chrome shape (WebGL): fixed in the top-right corner behind content */
+.chrome-shape { position: fixed; top: 76px; right: 0; z-index: 0; width: min(46vw, 620px); aspect-ratio: 1; pointer-events: none; }
+.chrome-shape canvas, .chrome-shape img { width: 100%; height: 100%; object-fit: contain; }
+@media (max-width: 760px) { .chrome-shape { width: 60vw; top: 60px; opacity: .55; } }
+
+/* Pointer: dot + ring, inverts what's under it; grows on links, fills with a label on [data-cursor] */
+.cursor { position: fixed; left: 0; top: 0; z-index: 200; pointer-events: none; mix-blend-mode: difference; }
+.cursor-dot, .cursor-ring { position: absolute; border-radius: 50%; transition: transform .25s cubic-bezier(.2,.8,.2,1), opacity .15s, background .2s; }
+.cursor-dot { width: 8px; height: 8px; margin: -4px 0 0 -4px; background: #fff; }
+.cursor-ring { width: 40px; height: 40px; margin: -20px 0 0 -20px; box-shadow: inset 0 0 0 1px rgb(255 255 255 / .6); }
+.cursor-label { position: absolute; transform: translate(-50%, -50%) scale(.6); opacity: 0; color: #000; font: 600 10px var(--mono); letter-spacing: .14em; text-transform: uppercase; white-space: nowrap; transition: opacity .15s, transform .25s; }
+.cursor.is-link .cursor-ring { transform: scale(1.6); }
+.cursor.is-link .cursor-dot { transform: scale(0); }
+.cursor.is-label { mix-blend-mode: normal; }
+.cursor.is-label .cursor-ring { transform: scale(2.2); background: var(--banana); box-shadow: none; }
+.cursor.is-label .cursor-dot { opacity: 0; }
+.cursor.is-label .cursor-label { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.cursor.is-down .cursor-ring { transform: scale(.8); }
+.select-wrap select, input, textarea { border-radius: 14px; }
+input[type="checkbox"], input[type="radio"] { border-radius: 4px; }
+body:has(.landing) .chrome-shape { top: 40px; width: min(58vw, 820px); }
