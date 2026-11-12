@@ -63,7 +63,6 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       if (!data) return;
       const list = sortGames(data.map((g) => g.name));
       setGames(list);
-      setGame((g) => (list.includes(g) ? g : "")); // the owner removed the game this person had picked
     };
     const channel = supabase.channel("games").on("postgres_changes", { event: "*", schema: "public", table: "games" }, reload).subscribe();
     return () => { supabase.removeChannel(channel); };
@@ -306,22 +305,25 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
           <label className="field-label" htmlFor="game">
             Game <span className="required">Required</span>
           </label>
-          <div className="select-wrap">
-            <select
-              id="game"
-              name="game"
-              required
-              value={game}
-              onChange={(e) => setGame(e.target.value)}
-            >
-              <option value="" disabled>
-                Choose a game
-              </option>
-              {games.map((g) => (
-                <option key={g}>{g}</option>
-              ))}
-            </select>
-          </div>
+          {/* Type to filter the list; an existing name snaps to its listed spelling, a new one is added on upload. */}
+          <input
+            id="game"
+            name="game"
+            list="game-list"
+            required
+            maxLength={40}
+            autoComplete="off"
+            placeholder="Type or choose a game"
+            aria-describedby="game-help"
+            value={game}
+            onChange={(e) => setGame(games.find((g) => g.toLowerCase() === e.target.value.trim().toLowerCase()) ?? e.target.value)}
+          />
+          <datalist id="game-list">
+            {games.map((g) => <option key={g} value={g} />)}
+          </datalist>
+          <p className="field-help" id="game-help">
+            <Icon name="info" size={14} /> {game.trim() && !games.includes(game) ? `"${game.trim()}" is new: it will be added to the list for everyone.` : "Pick from the list, or type a game that isn't there yet."}
+          </p>
           <div className="field-label-row">
             <label className="field-label" htmlFor="note">
               Note <span className="optional">Optional</span>

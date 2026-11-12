@@ -9,9 +9,12 @@ import { checkEdits, transformFor } from "@/lib/shorts.mjs";
 export async function POST(request: Request) {
   const p = await getProfile();
   if (!p?.approved) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  const { path, game, note, format, width, height, duration, trimStart, trimEnd, cropX } = await request.json().catch(() => ({}));
-  const { data: known } = typeof game === "string" ? await admin().from("games").select("name").eq("name", game).maybeSingle() : { data: null };
-  if (!known) return NextResponse.json({ error: "Pick a game from the list." }, { status: 400 });
+  const { path, game: rawGame, note, format, width, height, duration, trimStart, trimEnd, cropX } = await request.json().catch(() => ({}));
+  // Same rules as the games table (migration 0008). A name not on the list is added for everyone after the file checks pass.
+  const typed = typeof rawGame === "string" ? rawGame.trim().replace(/\s+/g, " ") : "";
+  if (typed.length < 1 || typed.length > 40 || /[<>]/.test(typed)) {
+    return NextResponse.json({ error: "Game names must be 1 to 40 characters, without < or >." }, { status: 400 });
+  }
   if (note != null && (typeof note !== "string" || note.length > 500)) {
     return NextResponse.json({ error: "Note must be 500 characters or fewer." }, { status: 400 });
   }
@@ -47,6 +50,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "That file isn't an allowed video." }, { status: 400 });
   }
 
+  // Reuse the listed spelling ("valorant" -> "Valorant") so clips share one game and numbering.
+  const findGame = async () => (await admin().from("games").select("name")).data?.find((g) => g.name.toLowerCase() === typed.toLowerCase())?.name;
+  let gameName = await findGame();
+  if (!gameName) {
+    const { error: addError } = await admin().from("games").insert({ name: typed });
+    gameName = !addError ? typed : addError.code === "23505" ? await findGame() : undefined; // 23505: added by someone else just now
+    if (!gameName) return NextResponse.json({ error: addError?.message ?? "Couldn't add that game." }, { status: 400 });
+  }
+  const game = gameName;
   const { error } = await admin().from("clips").insert({ user_id: p.id, game, note: note?.trim() || null, storage_path: path, format, transform, ...edits });
   if (error) {
     const msg = error.code === "23505" ? "This file was already submitted." : error.message;
