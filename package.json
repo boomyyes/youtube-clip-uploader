@@ -26,6 +26,7 @@
     "lenis": "^1.3.27",
     "lucide-react": "^1.72.0",
     "next": "16.4.3",
+    "nextjs-toploader": "^3.9.17",
     "radix-ui": "^1.8.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",

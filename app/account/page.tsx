@@ -1,3 +1,4 @@
+import SubmitButton from "@/app/submit-button";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
@@ -29,7 +30,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <label className="field-label" htmlFor="name">Display name</label>
             <input id="name" name="name" defaultValue={p.display_name} required minLength={1} maxLength={40} />
             <p className="field-help">1–40 characters</p>
-            <button type="submit" className="button button-primary"><Icon name="check" /> Save name</button>
+            <SubmitButton className="rounded-full"><Icon name="check" /> Save name</SubmitButton>
           </form>
         </section>
 
@@ -54,7 +55,7 @@ export default async function Account({ searchParams }: { searchParams: Promise<
             <label className="check-row">
               <input type="checkbox" name="confirm" value="yes" required /> I understand this can&apos;t be undone
             </label>
-            <button type="submit" className="button button-danger"><Icon name="bin" /> Delete my account</button>
+            <SubmitButton variant="destructive" className="rounded-full"><Icon name="bin" /> Delete my account</SubmitButton>
           </form>
         </section>
       </div>

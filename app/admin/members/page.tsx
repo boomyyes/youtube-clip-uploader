@@ -1,3 +1,4 @@
+import SubmitButton from "@/app/submit-button";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
@@ -57,16 +58,16 @@ export default async function Members({ searchParams }: { searchParams: Promise<
                     <label htmlFor={`name-${m.id}`}>Display name <span className="optional">Applies to clips approved from now on</span></label>
                     <div className="review-actions" style={{ padding: 0 }}>
                       <input id={`name-${m.id}`} name="name" defaultValue={m.display_name} required minLength={1} maxLength={40} />
-                      <button type="submit" className="button button-secondary">Rename</button>
+                      <SubmitButton variant="outline" className="rounded-full">Rename</SubmitButton>
                     </div>
                   </form>
                   <div className="review-actions">
                     <form action={setApproved} className="inline-form">
                       <input type="hidden" name="id" value={m.id} />
                       <input type="hidden" name="approved" value={String(!m.approved)} />
-                      <button type="submit" className={`button ${m.approved ? "button-secondary" : "button-primary"}`}>
+                      <SubmitButton variant={m.approved ? "outline" : "default"} className="rounded-full">
                         {m.approved ? "Suspend" : <><Icon name="check" /> Activate</>}
-                      </button>
+                      </SubmitButton>
                     </form>
                   </div>
                   <form action={deleteMember} className="review-actions" style={{ flexWrap: "wrap" }}>
@@ -74,7 +75,7 @@ export default async function Members({ searchParams }: { searchParams: Promise<
                     <label className="muted" style={{ display: "flex", gap: 8, alignItems: "center", fontSize: 12 }}>
                       <input type="checkbox" name="confirm" value="yes" required style={{ width: "auto" }} /> Delete account and stored clips
                     </label>
-                    <button type="submit" className="button button-danger" aria-label={`Delete ${m.display_name}'s account`}><Icon name="bin" /> Delete</button>
+                    <SubmitButton variant="destructive" className="rounded-full" aria-label={`Delete ${m.display_name}'s account`}><Icon name="bin" /> Delete</SubmitButton>
                   </form>
                 </>
               )}

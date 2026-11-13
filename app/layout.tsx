@@ -1,3 +1,4 @@
+import SubmitButton from "@/app/submit-button";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
@@ -6,6 +7,7 @@ import Icon, { type IconName } from "./pixel-icon";
 import NavLinks from "./nav-links";
 import ChromeShape from "./chrome-shape";
 import Cursor from "./cursor";
+import NextTopLoader from "nextjs-toploader";
 import { Logo } from "./ui";
 import "./globals.css";
 
@@ -28,6 +30,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" className={`${display.variable} ${mono.variable}`}>
       <body>
         <div className="app-frame">
+          {/* thin banana bar while a new page loads */}
+          <NextTopLoader color="#ffe135" height={2} showSpinner={false} shadow={false} crawlSpeed={150} speed={300} />
           <ChromeShape />
           <Cursor />
           <header className="topbar">
@@ -38,7 +42,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
                 <form action="/auth/signout" method="post" className="user-menu">
                   <span className="user-avatar" aria-hidden="true">{p.display_name.charAt(0).toUpperCase()}</span>
                   <span className="user-name">{p.display_name}</span>
-                  <button type="submit" className="sign-out"><Icon name="signout" size={15} /> <span>Sign out</span></button>
+                  <SubmitButton variant="ghost" size="sm" className="sign-out"><Icon name="signout" size={15} /> <span>Sign out</span></SubmitButton>
                 </form>
               )}
             </div>

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Slider } from "@/components/ui/slider";
 import { Progress } from "@/components/ui/progress";
+import { Spinner } from "@/components/ui/spinner";
 import { MAX_SHORT_SECONDS, recommendFormat, transformFor } from "@/lib/shorts.mjs";
 
 type Clip = { url: string; width: number; height: number; duration: number; still: boolean };
@@ -359,7 +360,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
         </p>
         <div className="form-actions">
           <Button type="submit" size="lg" className="rounded-full" disabled={busy} data-cursor="Send">
-            <Icon name="upload" />
+            {busy ? <Spinner aria-hidden="true" role={undefined} aria-label={undefined} /> : <Icon name="upload" />}
             {busy ? "Uploading…" : "Send for review"}
           </Button>
           <span className="form-safe">

@@ -776,3 +776,9 @@ body:has(.landing) .chrome-shape { top: 40px; width: min(58vw, 820px); }
 .format-short { width: min(100%, 300px); }
 .review-card .format-short { height: 440px; }
 .review-card .format-pad, .review-card .format-none { height: 300px; }
+/* Fluid feel: each page fades and rises in; skeleton shimmer uses our palette */
+.main-content > * { animation: page-in .45s cubic-bezier(.2, .8, .2, 1) both; }
+@keyframes page-in { from { opacity: 0; transform: translateY(10px); } }
+.page-skeleton [data-slot="skeleton"] { background: #141414; }
+.page-skeleton .page-index { margin-top: 0; }
+button[aria-busy="true"] { cursor: progress; }
