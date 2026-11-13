@@ -99,17 +99,22 @@ function Statement() {
   );
 }
 
-// Pinned: the chrome banana grows out of the dark while the headline fades in over it.
+// Pinned: scrolling scrubs the sweating-banana push-in (every frame a keyframe, so seeking is smooth)
+// while the headline fades in over it.
 function Depth() {
   const ref = useRef(null);
+  const video = useRef(null);
   const reduced = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const scale = useTransform(scrollYProgress, [0, 1], reduced ? [1, 1] : [0.55, 1.25]);
+  useMotionValueEvent(scrollYProgress, "change", (v) => {
+    const el = video.current;
+    if (!reduced && el?.duration) el.currentTime = v * (el.duration - 0.05);
+  });
   const titleOpacity = useTransform(scrollYProgress, [0.25, 0.55], reduced ? [1, 1] : [0, 1]);
   return (
     <section className="depth" ref={ref}>
       <div className="depth-pin">
-        <motion.img src="/assets/chrome-banana.png" alt="" style={{ scale }} />
+        <video ref={video} src="/assets/built-for-clips.mp4" muted playsInline preload="auto" aria-hidden="true" />
         <motion.h2 style={{ opacity: titleOpacity }}>Built for <em>clips.</em></motion.h2>
       </div>
     </section>

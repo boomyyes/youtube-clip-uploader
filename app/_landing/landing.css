@@ -55,7 +55,7 @@ body:has(.landing) .chrome-shape { top: 50%; left: 50%; right: auto; width: min(
 /* Depth */
 .landing .depth { height: 220vh; padding: 0 !important; }
 .landing .depth-pin { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; overflow: hidden; }
-.landing .depth-pin img { grid-area: 1 / 1; width: min(90vw, 1100px); -webkit-mask-image: radial-gradient(closest-side, #000 62%, transparent); mask-image: radial-gradient(closest-side, #000 62%, transparent); }
+.landing .depth-pin video { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: cover; }
 .landing .depth-pin h2 { grid-area: 1 / 1; z-index: 1; margin: 0; font-size: clamp(56px, 11vw, 188px); font-weight: 700; line-height: .86; letter-spacing: -.05em; text-transform: uppercase; text-align: center; text-shadow: 0 4px 40px #000; }
 
 /* Process (pinned) */
