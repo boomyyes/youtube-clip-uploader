@@ -772,3 +772,7 @@ body:has(.landing) .chrome-shape { top: 40px; width: min(58vw, 820px); }
 .format-preview { --media-accent-color: var(--banana); --media-accent-text-color: #000; --media-font-family: var(--display); --media-border-radius: 18px; }
 .format-preview .format-skin { position: relative; width: 100%; height: 100%; }
 .format-pad .format-skin { position: absolute; inset: 0; }
+/* Bigger previews: a 9:16 Short needs height to be watchable and to fit the player controls */
+.format-short { width: min(100%, 300px); }
+.review-card .format-short { height: 440px; }
+.review-card .format-pad, .review-card .format-none { height: 300px; }

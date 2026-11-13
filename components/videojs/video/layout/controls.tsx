@@ -1,18 +1,12 @@
 import { Controls, Time, Tooltip } from '@videojs/react';
 import type { ComponentProps } from 'react';
 
-import { AirPlayButton } from '@/components/videojs/ui/airplay-button';
 import { ButtonTooltip } from '@/components/videojs/ui/button-tooltip';
-import { CaptionsButton } from '@/components/videojs/ui/captions-button';
-import { CastButton } from '@/components/videojs/ui/cast-button';
 import { FullscreenButton } from '@/components/videojs/ui/fullscreen-button';
-import { PiPButton } from '@/components/videojs/ui/pip-button';
 import { PlayButton } from '@/components/videojs/ui/play-button';
 import { TimeSlider } from '@/components/videojs/ui/time-slider';
 import { VolumePopover } from '@/components/videojs/ui/volume-popover';
 import { cn } from '@/lib/resolve-class-name';
-
-import { VideoSettingsMenu } from '../menus/settings-menu';
 
 export interface NeutralVideoControlsProps {
   renderThumbnail?: NonNullable<ComponentProps<typeof TimeSlider>>['renderThumbnail'];
@@ -92,24 +86,11 @@ export function NeutralVideoControls({ renderThumbnail }: NeutralVideoControlsPr
               'group-has-[[data-volume-level][aria-expanded=true]]/controls:media-max-2xl:mask-media-volume-open'
             )}
           >
+            {/* Clip previews only need fullscreen here: captions, settings, cast, AirPlay and PiP removed so
+                the controls fit one row on a small 9:16 preview. */}
             <ButtonTooltip side="top">
-              <CaptionsButton className={'media-max-xs:hidden'} />
+              <FullscreenButton />
             </ButtonTooltip>
-            <VideoSettingsMenu />
-            <Controls.Group className={'flex items-center rtl:flex-row-reverse gap-px'}>
-              <ButtonTooltip side="top">
-                <CastButton />
-              </ButtonTooltip>
-              <ButtonTooltip side="top">
-                <AirPlayButton />
-              </ButtonTooltip>
-              <ButtonTooltip side="top">
-                <PiPButton />
-              </ButtonTooltip>
-              <ButtonTooltip side="top">
-                <FullscreenButton />
-              </ButtonTooltip>
-            </Controls.Group>
           </Controls.Group>
         </Tooltip.Provider>
       </Controls.Content>
