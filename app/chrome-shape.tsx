@@ -39,10 +39,30 @@ float tick(vec3 p){
   return min(capsule(p, vec3(-0.6,0.05,0.), vec3(-0.15,-0.42,0.), 0.18), capsule(p, vec3(-0.15,-0.42,0.), vec3(0.65,0.55,0.), 0.18));
 }
 float shape(int i, vec3 p){ return i==1 ? arrow(p) : i==2 ? play(p) : i==3 ? tick(p) : banana(p); }
+float hash(float n){ return fract(sin(n)*43758.5453); }
+float smin(float a, float b, float k){ k = max(k, 1e-4); float h = clamp(0.5 + 0.5*(b-a)/k, 0., 1.); return mix(b, a, h) - k*h*(1.-h); }
+// Sweat: 4 drops, each on its own cycle. A drop beads out of the underside (smooth union), then falls
+// with gravity, stretching as it speeds up. Drops use world space, so they fall straight down however the shape turns.
+float sweat(vec3 p, float d){
+  for (int i = 0; i < 4; i++) {
+    float fi = float(i);
+    float ph = uTime*0.32 + fi*0.27 + hash(fi)*0.5;
+    float cyc = floor(ph), t = fract(ph);
+    float x = (hash(cyc*7.13 + fi*3.31) - 0.5) * 1.1;
+    float z = (hash(cyc*1.71 + fi*5.17) - 0.5) * 0.3;
+    float y = -0.2 - 2.8*t*t;
+    float r = 0.06 + 0.035*hash(cyc*3.9 + fi*9.1);
+    vec3 q = p - vec3(x, y, z);
+    q.y /= 1. + 1.4*t; // stretch into a teardrop while falling
+    d = smin(d, length(q) - r, 0.22*(1. - t)); // melt off the surface early, separate as it falls
+  }
+  return d;
+}
 float map(vec3 p){
-  p.xz = rot(0.45*sin(uTime*0.35) + uMouse.x*0.5)*p.xz;
-  p.yz = rot(-uMouse.y*0.35)*p.yz;
-  return mix(shape(uFrom, p), shape(uTo, p), smoothstep(0., 1., uMix));
+  vec3 q = p;
+  q.xz = rot(0.45*sin(uTime*0.35) + uMouse.x*0.5)*q.xz;
+  q.yz = rot(-uMouse.y*0.35)*q.yz;
+  return sweat(p, mix(shape(uFrom, q), shape(uTo, q), smoothstep(0., 1., uMix)));
 }
 vec3 normalAt(vec3 p){ vec2 e = vec2(1.,-1.)*0.0015; return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx)); }
 // Studio: softbox top-left, strip light right, banana-yellow bounce from below, black everywhere else.
@@ -57,7 +77,7 @@ void main(){
   vec2 uv = (gl_FragCoord.xy*2. - uRes) / uRes.y;
   vec3 ro = vec3(0., 0., 4.4), rd = normalize(vec3(uv, -1.9));
   float t = 0.; bool hit = false;
-  for (int i = 0; i < 90; i++) { float d = map(ro + rd*t); if (d < 0.001) { hit = true; break; } t += d; if (t > 8.) break; }
+  for (int i = 0; i < 110; i++) { float d = map(ro + rd*t); if (d < 0.001) { hit = true; break; } t += d; if (t > 8.) break; }
   if (!hit) { gl_FragColor = vec4(0.); return; }
   vec3 n = normalAt(ro + rd*t);
   float fres = pow(1. - max(dot(n, -rd), 0.), 3.);

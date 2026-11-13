@@ -474,7 +474,6 @@ body:has(.login-frame) .main-content { max-width: none; padding: 0; }
 .cursor.is-down .cursor-ring { transform: scale(.8); }
 .select-wrap select, input, textarea { border-radius: 14px; }
 input[type="checkbox"], input[type="radio"] { border-radius: 4px; }
-body:has(.landing) .chrome-shape { top: 40px; width: min(58vw, 820px); }
 
 @utility duration-media-* {
     transition-duration: --value(--duration-media-*);

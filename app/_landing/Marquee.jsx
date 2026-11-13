@@ -1,4 +1,4 @@
-const ITEMS = ["Private clip dropbox", "Reviewed by the owner", "No YouTube account needed", "Titled & uploaded for you"];
+const ITEMS = ["Drop it", "Name it", "Review it", "Post it"];
 
 function Row({ hidden }) {
   return (
