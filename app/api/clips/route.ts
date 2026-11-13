@@ -9,11 +9,16 @@ import { checkEdits, transformFor } from "@/lib/shorts.mjs";
 export async function POST(request: Request) {
   const p = await getProfile();
   if (!p?.approved) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  const { path, game: rawGame, note, format, width, height, duration, trimStart, trimEnd, cropX } = await request.json().catch(() => ({}));
+  const { path, game: rawGame, title: rawTitle, note, format, width, height, duration, trimStart, trimEnd, cropX } = await request.json().catch(() => ({}));
   // Same rules as the games table (migration 0008). A name not on the list is added for everyone after the file checks pass.
   const typed = typeof rawGame === "string" ? rawGame.trim().replace(/\s+/g, " ") : "";
   if (typed.length < 1 || typed.length > 40 || /[<>]/.test(typed)) {
     return NextResponse.json({ error: "Game names must be 1 to 40 characters, without < or >." }, { status: 400 });
+  }
+  // Optional; goes in front of the generated title at approval (migration 0011).
+  const customTitle = typeof rawTitle === "string" ? rawTitle.trim().replace(/\s+/g, " ") || null : null;
+  if (customTitle && (customTitle.length > 50 || /[<>]/.test(customTitle))) {
+    return NextResponse.json({ error: "Custom titles must be 50 characters or fewer, without < or >." }, { status: 400 });
   }
   if (note != null && (typeof note !== "string" || note.length > 500)) {
     return NextResponse.json({ error: "Note must be 500 characters or fewer." }, { status: 400 });
@@ -59,7 +64,7 @@ export async function POST(request: Request) {
     if (!gameName) return NextResponse.json({ error: addError?.message ?? "Couldn't add that game." }, { status: 400 });
   }
   const game = gameName;
-  const { error } = await admin().from("clips").insert({ user_id: p.id, game, note: note?.trim() || null, storage_path: path, format, transform, ...edits });
+  const { error } = await admin().from("clips").insert({ user_id: p.id, game, custom_title: customTitle, note: note?.trim() || null, storage_path: path, format, transform, ...edits });
   if (error) {
     const msg = error.code === "23505" ? "This file was already submitted." : error.message;
     return NextResponse.json({ error: msg }, { status: 400 });

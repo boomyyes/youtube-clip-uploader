@@ -81,6 +81,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
   } | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [noteLength, setNoteLength] = useState(0);
+  const [customTitle, setCustomTitle] = useState("");
   // The chosen file's shape and length (read in the browser) drive the Short/Regular choice and preview.
   const [clip, setClip] = useState<Clip | null>(null);
   const [format, setFormat] = useState<"short" | "regular">("regular");
@@ -185,6 +186,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       await api("/api/clips", {
         path,
         game: data.get("game"),
+        title: customTitle,
         note: data.get("note"),
         format: clip ? chosen : "regular",
         width: clip?.width,
@@ -199,6 +201,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
       setGame("");
       setFileName(null);
       setNoteLength(0);
+      setCustomTitle("");
       dropPreview();
       setFormat("regular");
       setMessage({
@@ -329,6 +332,21 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
             <Icon name="info" size={14} /> {game.trim() && !games.includes(game) ? `"${game.trim()}" is new: it will be added to the list for everyone.` : "Pick from the list, or type a game that isn't there yet."}
           </p>
           <div className="field-label-row">
+            <label className="field-label" htmlFor="title">
+              Custom title <span className="optional">Optional</span>
+            </label>
+            <span className="char-count">{customTitle.length} / 50</span>
+          </div>
+          <Input
+            id="title"
+            name="title"
+            maxLength={50}
+            autoComplete="off"
+            value={customTitle}
+            onChange={(e) => setCustomTitle(e.target.value.replace(/[<>]/g, ""))}
+            placeholder="e.g. Insane 1v5 clutch"
+          />
+          <div className="field-label-row">
             <label className="field-label" htmlFor="note">
               Note <span className="optional">Optional</span>
             </label>
@@ -401,7 +419,7 @@ export default function UploadForm({ name, used: initialUsed, games: initialGame
           </div>
           <strong>Title is handled for you</strong>
           <p className="muted" aria-live="polite">
-            Your clip becomes &quot;{name}&apos;s clip in {game || "[game]"} #
+            Your clip becomes &quot;{customTitle.trim() && `${customTitle.trim()} | `}{name}&apos;s clip in {game || "[game]"} #
             {game ? lowestFree(used[game]) : "[n]"}&quot; when approved.
           </p>
           {chosen === "short" && clip && <p className="muted">#Shorts is added to the description.</p>}
