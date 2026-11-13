@@ -8,6 +8,7 @@ next-env.d.ts
 .remember/
 docs/conversations/
 .claude/settings.local.json
+AGENTS.md
 
 # Playwright screenshots/logs
 .playwright-mcp/
