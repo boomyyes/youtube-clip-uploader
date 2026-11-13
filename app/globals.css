@@ -782,3 +782,5 @@ body:has(.landing) .chrome-shape { top: 40px; width: min(58vw, 820px); }
 .page-skeleton [data-slot="skeleton"] { background: #141414; }
 .page-skeleton .page-index { margin-top: 0; }
 button[aria-busy="true"] { cursor: progress; }
+/* Fullscreen preview: lift the inline size caps (e.g. max-height: 360px on regular clips) so the video fills the screen */
+.format-preview :fullscreen video, .format-preview video:fullscreen { width: 100%; height: 100%; max-height: none; object-fit: contain; }
