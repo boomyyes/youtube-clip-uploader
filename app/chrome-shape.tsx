@@ -51,26 +51,31 @@ float sweat(vec3 p, float d){
     float x = (hash(cyc*7.13 + fi*3.31) - 0.5) * 1.1;
     float z = (hash(cyc*1.71 + fi*5.17) - 0.5) * 0.3;
     float y = -0.2 - 2.8*t*t;
-    float r = 0.06 + 0.035*hash(cyc*3.9 + fi*9.1);
+    float r = 0.032 + 0.022*hash(cyc*3.9 + fi*9.1);
     vec3 q = p - vec3(x, y, z);
-    q.y /= 1. + 1.4*t; // stretch into a teardrop while falling
-    d = smin(d, length(q) - r, 0.22*(1. - t)); // melt off the surface early, separate as it falls
+    q.y /= 1. + 1.8*t; // stretch into a teardrop while falling
+    d = smin(d, length(q) - r, 0.1*(1. - t)*(1. - t)); // a thin neck that pinches off early
   }
   return d;
 }
-float map(vec3 p){
+float body(vec3 p){
   vec3 q = p;
   q.xz = rot(0.45*sin(uTime*0.35) + uMouse.x*0.5)*q.xz;
   q.yz = rot(-uMouse.y*0.35)*q.yz;
-  return sweat(p, mix(shape(uFrom, q), shape(uTo, q), smoothstep(0., 1., uMix)));
+  return mix(shape(uFrom, q), shape(uTo, q), smoothstep(0., 1., uMix));
 }
+float map(vec3 p){ return sweat(p, body(p)); }
 vec3 normalAt(vec3 p){ vec2 e = vec2(1.,-1.)*0.0015; return normalize(e.xyy*map(p+e.xyy)+e.yyx*map(p+e.yyx)+e.yxy*map(p+e.yxy)+e.xxx*map(p+e.xxx)); }
-// Studio: softbox top-left, strip light right, banana-yellow bounce from below, black everywhere else.
+// Studio: hard-edged softbox top-left, thin strip lights right and left, banana bounce from below, black elsewhere.
+// Sharp light edges + deep black between them is what reads as polished chrome rather than satin.
 vec3 env(vec3 r){
-  vec3 c = vec3(0.02);
-  c += vec3(1.3) * smoothstep(0.6, 0.92, dot(r, normalize(vec3(-0.6, 0.75, 0.3))));
-  c += vec3(1.1) * smoothstep(0.72, 0.8, r.x) * smoothstep(0.55, 0.0, abs(r.y));
-  c += vec3(1.0, 0.88, 0.21) * 1.2 * smoothstep(-0.15, -0.75, r.y);
+  vec3 c = vec3(0.004);
+  c += vec3(2.2) * smoothstep(0.72, 0.76, dot(r, normalize(vec3(-0.6, 0.75, 0.3))));
+  c += vec3(1.2) * smoothstep(0.90, 0.92, r.y) * smoothstep(0.7, 0.5, abs(r.x));
+  c += vec3(1.8) * smoothstep(0.86, 0.88, r.x) * smoothstep(0.6, 0.5, abs(r.y));
+  c += vec3(0.9) * smoothstep(0.93, 0.95, -r.x) * smoothstep(0.3, 0.2, abs(r.y - 0.1));
+  c += vec3(1.0, 0.88, 0.21) * 1.4 * smoothstep(-0.35, -0.6, r.y);
+  c += vec3(0.08) * smoothstep(0.02, 0.0, abs(r.y + 0.05)); // faint horizon line
   return c;
 }
 void main(){
@@ -79,9 +84,22 @@ void main(){
   float t = 0.; bool hit = false;
   for (int i = 0; i < 110; i++) { float d = map(ro + rd*t); if (d < 0.001) { hit = true; break; } t += d; if (t > 8.) break; }
   if (!hit) { gl_FragColor = vec4(0.); return; }
-  vec3 n = normalAt(ro + rd*t);
-  float fres = pow(1. - max(dot(n, -rd), 0.), 3.);
-  vec3 col = env(reflect(rd, n)) * mix(0.75, 1.15, fres);
+  vec3 pos = ro + rd*t, n = normalAt(pos);
+  float fres = pow(1. - max(dot(n, -rd), 0.), 5.);
+  vec3 refl = env(reflect(rd, n));
+  float spec = pow(max(dot(reflect(rd, n), normalize(vec3(-0.5, 0.7, 0.5))), 0.), 180.) * 6.;
+  if (body(pos) > 0.004) {
+    // Sweat: clear water, not chrome. Mostly see-through, a bright rim, a pin-point glint, a hint of refraction.
+    float rim = pow(1. - max(dot(n, -rd), 0.), 2.);
+    float glint = pow(max(dot(reflect(rd, n), normalize(vec3(-0.5, 0.7, 0.5))), 0.), 40.) * 4.;
+    vec3 refr = env(refract(rd, n, 0.75)) * 0.5;
+    vec3 col = refr + refl * (0.3 + 0.7*rim) + vec3(0.85, 0.92, 1.) * (rim*0.6 + glint);
+    float a = clamp(0.06 + 0.9*rim + glint + dot(refl, vec3(0.3)), 0., 1.);
+    gl_FragColor = vec4(pow(col, vec3(0.4545)), a); // blending multiplies by alpha
+    return;
+  }
+  vec3 col = refl * (0.9 + 0.6*fres) + spec;
+  col = col / (1. + col*0.25); // soft roll-off so bright highlights don't flatten
   gl_FragColor = vec4(pow(col, vec3(0.4545)), 1.);
 }`;
 const vert = /* glsl */ `void main(){ gl_Position = vec4(position.xy, 0., 1.); }`;
