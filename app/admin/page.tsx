@@ -11,7 +11,7 @@ import { OTHER_GAME, sortGames } from "@/lib/games";
 
 type Clip = {
   id: string; game: string; note: string | null; storage_path: string; status: string; title: string | null;
-  youtube_video_id: string | null; last_error: string | null; created_at: string; format: string; transform: string; trim_start: number | null; trim_end: number | null; crop_x: number | null;
+  youtube_video_id: string | null; last_error: string | null; created_at: string; format: string; transform: string; trim_start: number | null; trim_end: number | null; crop_x: number | null; custom_title: string | null;
   profiles: { display_name: string } | null;
 };
 
@@ -25,7 +25,7 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
     db.from("youtube_connection").select("channel_title, updated_at").eq("id", 1).maybeSingle(),
     db.from("profiles").select("id, display_name, email, created_at").eq("approved", false).order("created_at"),
     db.from("clips")
-      .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, format, transform, trim_start, trim_end, crop_x, profiles(display_name)")
+      .select("id, game, note, storage_path, status, title, youtube_video_id, last_error, created_at, format, transform, trim_start, trim_end, crop_x, custom_title, profiles(display_name)")
       .in("status", ["queued", "approved", "uploading", "failed"])
       .order("created_at")
       .returns<Clip[]>(),
@@ -142,6 +142,8 @@ export default async function Admin({ searchParams }: { searchParams: Promise<{ 
                     {c.transform === "crop" ? "Will be cropped to 9:16 for Shorts before upload." : "Will be padded to 16:9 (blurred sides) so it posts as a regular video."}
                   </p>
                 )}
+                {/* Uploaders can't edit clips after upload, so this is exactly what approval publishes. */}
+                {c.custom_title && <div className="review-note"><span>CUSTOM TITLE (PUBLISHED AS &quot;{c.custom_title} | …&quot;)</span><p>{c.custom_title}</p></div>}
                 {c.trim_start != null && (
                   <p className="review-note muted">Trimmed: only {c.trim_start}s to {c.trim_end}s is uploaded (the preview plays just that part).</p>
                 )}
