@@ -114,7 +114,10 @@ function Depth() {
   return (
     <section className="depth" ref={ref}>
       <div className="depth-pin">
-        <video ref={video} src="/assets/built-for-clips.mp4" muted playsInline preload="auto" aria-hidden="true" />
+        <video ref={video} muted playsInline preload="auto" aria-hidden="true">
+          <source src="/assets/built-for-clips-1080.mp4" type="video/mp4" media="(min-width: 900px)" />
+          <source src="/assets/built-for-clips-720.mp4" type="video/mp4" />
+        </video>
         <motion.h2 style={{ opacity: titleOpacity }}>Built for <em>clips.</em></motion.h2>
       </div>
     </section>
