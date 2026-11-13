@@ -4,7 +4,7 @@ import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
 import { head, presignGet, reviewableBefore } from "@/lib/r2.mjs";
 import { addGame, approveClip, approveUser, disconnectYouTube, rejectClip, removeGame, retryClip } from "./actions";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { Notice, PageHeader, StatusPill } from "../ui";
 import FormatPreview from "../format-preview";
 import { OTHER_GAME, sortGames } from "@/lib/games";

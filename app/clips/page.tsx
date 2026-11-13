@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { PageHeader, StatusPill } from "../ui";
 
 export default async function MyClips() {

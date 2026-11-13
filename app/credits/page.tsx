@@ -1,4 +1,4 @@
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { PageHeader } from "../ui";
 
 export const metadata = { title: "Credits · Clip Desk" };
@@ -13,11 +13,11 @@ const ASSETS = [
     site: "openmoji.org",
   },
   {
-    what: "Streamline Pixel icon set",
+    what: "Iconoir icon set",
     use: "Interface icons",
-    licence: "CC BY 4.0",
-    href: "https://www.streamlinehq.com/icons/pixel",
-    site: "streamlinehq.com",
+    licence: "MIT",
+    href: "https://iconoir.com",
+    site: "iconoir.com",
   },
   {
     what: "Landing page design, pixel banana mark and scene poster",

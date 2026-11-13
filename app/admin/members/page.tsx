@@ -2,7 +2,7 @@ import SubmitButton from "@/app/submit-button";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import Icon from "../../pixel-icon";
+import Icon from "../../ui-icon";
 import { Notice, PageHeader } from "../../ui";
 import { deleteMember, renameMember, setApproved } from "./actions";
 

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { Logo, Notice } from "../ui";
 import SignInButton from "./sign-in-button";
 

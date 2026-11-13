@@ -345,8 +345,8 @@ input::placeholder, textarea::placeholder { color: #6f7b8f; }
 }
 
 /* ---- Additions for this app ---- */
-/* Streamline Pixel icons, masked so they follow currentColor. */
-.icon { display: inline-block; flex: none; width: var(--size, 16px); height: var(--size, 16px); background: currentColor; mask: var(--src) center / contain no-repeat; }
+/* Iconoir icons: inline SVG strokes follow currentColor. */
+.icon { display: inline-block; flex: none; vertical-align: -0.125em; }
 /* Login is full-screen: hide the app chrome there. */
 body:has(.login-frame) .topbar, body:has(.login-frame) .site-footer { display: none; }
 body:has(.login-frame) .main-content { max-width: none; padding: 0; }

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { CONTACT_EMAIL } from "@/lib/games";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { PageHeader } from "../ui";
 
 export const metadata = { title: "Terms of Service · Clip Uploader" };

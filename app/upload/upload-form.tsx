@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { MAX_BYTES, VIDEO_TYPES, sortGames } from "@/lib/games";
 import { createClient } from "@/lib/supabase/browser";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 import { Notice } from "../ui";
 import FormatPreview from "../format-preview";
 import { Button } from "@/components/ui/button";

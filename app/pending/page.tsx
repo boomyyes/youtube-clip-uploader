@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getProfile } from "@/lib/auth";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 
 export default async function Pending() {
   const p = await getProfile();

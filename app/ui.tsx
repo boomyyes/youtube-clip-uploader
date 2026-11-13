@@ -1,5 +1,5 @@
 import Link from "next/link";
-import Icon from "./pixel-icon";
+import Icon from "./ui-icon";
 
 export function PageHeader({ eyebrow, title, children, action }: { eyebrow: string; title: string; children?: React.ReactNode; action?: React.ReactNode }) {
   return (

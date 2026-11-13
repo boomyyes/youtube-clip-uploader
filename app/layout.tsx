@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
 import { getProfile } from "@/lib/auth";
-import Icon, { type IconName } from "./pixel-icon";
+import Icon, { type IconName } from "./ui-icon";
 import NavLinks from "./nav-links";
 import ChromeShape from "./chrome-shape";
 import Cursor from "./cursor";

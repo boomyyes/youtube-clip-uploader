@@ -1,6 +1,6 @@
 "use client";
 import { motion, useReducedMotion } from "framer-motion";
-import Icon from "../pixel-icon";
+import Icon from "../ui-icon";
 
 const STEPS = [
   { n: "01", icon: "upload", title: "You upload", body: "Send the full clip, no YouTube account needed." },

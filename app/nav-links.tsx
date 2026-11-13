@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import Icon, { type IconName } from "./pixel-icon";
+import Icon, { type IconName } from "./ui-icon";
 
 export default function NavLinks({ items }: { items: { href: string; label: string; icon: IconName }[] }) {
   const path = usePathname();
