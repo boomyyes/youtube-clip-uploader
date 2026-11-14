@@ -14,8 +14,20 @@
 body:has(.landing) .topbar, body:has(.landing) .site-footer { display: none; }
 body:has(.landing) .main-content { max-width: none; padding: 0; }
 body:has(.landing) .main-content > * { animation: none; }
-/* 3D object: centred behind the transparent hero; the opaque sections below scroll over it. */
-body:has(.landing) .chrome-shape { top: 50%; left: 50%; right: auto; width: min(82vw, 760px); translate: -50% -62%; }
+/* Background showcase: Blender banana behind every section. Warm dark backdrop in CSS, the canvas on top,
+   then a ring of blur so the frame edges fall off like a macro lens. */
+.landing .stage { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(ellipse 70% 60% at 55% 42%, #1a140d 0%, #0b0906 48%, #000 85%); }
+.landing .stage-poster, .landing .stage-canvas { position: absolute !important; inset: 0; width: 100%; height: 100%; }
+.landing .stage-poster { object-fit: cover; opacity: 0; transition: opacity 1.2s cubic-bezier(.65,0,.35,1); }
+.landing .stage-poster[data-on] { opacity: 1; }
+.landing .stage-canvas { opacity: 0; transition: opacity 1.2s ease; }
+.landing .stage-canvas[data-ready] { opacity: 1; }
+.landing .stage-edge { position: absolute; inset: 0; -webkit-backdrop-filter: blur(7px); backdrop-filter: blur(7px);
+  -webkit-mask-image: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, #000 100%); mask-image: radial-gradient(ellipse 75% 70% at 50% 48%, transparent 55%, #000 100%);
+  background: radial-gradient(ellipse 80% 75% at 50% 48%, transparent 50%, rgb(0 0 0 / .55) 100%); }
+.landing > :not(.stage) { position: relative; z-index: 1; }
+/* Copy sits on the left: a soft dark scrim keeps it readable over the brightest close-ups. */
+.landing .stage::after { content: ""; position: absolute; inset: 0; background: linear-gradient(90deg, rgb(0 0 0 / .55) 0%, rgb(0 0 0 / .25) 45%, transparent 70%); }
 
 /* Nav */
 .landing .nav { position: fixed; inset: 0 0 auto; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px var(--pad-x); background: linear-gradient(#000 30%, transparent); }
@@ -46,7 +58,8 @@ body:has(.landing) .chrome-shape { top: 50%; left: 50%; right: auto; width: min(
 .landing .scroll-cue { position: absolute; left: 50%; bottom: 14px; translate: -50% 0; font: 500 10px var(--font-mono); letter-spacing: .2em; text-transform: uppercase; color: var(--dim); animation: l-cue 2.4s ease-in-out infinite; }
 
 /* Everything after the hero is opaque, so it scrolls over the fixed 3D object */
-.landing .landing-body { position: relative; background: #000; }
+.landing .landing-body { position: relative; }
+.landing h1, .landing h2, .landing h3, .landing .statement-text, .landing .stats-grid strong { text-shadow: 0 2px 30px rgb(0 0 0 / .7); }
 .landing .landing-body > section { padding: clamp(88px, 14vh, 152px) var(--pad-x); border-top: 1px solid var(--line); }
 
 /* Statement */
@@ -55,7 +68,6 @@ body:has(.landing) .chrome-shape { top: 50%; left: 50%; right: auto; width: min(
 /* Depth */
 .landing .depth { height: 220vh; padding: 0 !important; }
 .landing .depth-pin { position: sticky; top: 0; height: 100svh; display: grid; place-items: center; overflow: hidden; }
-.landing .depth-pin video { grid-area: 1 / 1; width: 100%; height: 100%; object-fit: cover; }
 .landing .depth-pin h2 { grid-area: 1 / 1; z-index: 1; margin: 0; font-size: clamp(56px, 11vw, 188px); font-weight: 700; line-height: .86; letter-spacing: -.05em; text-transform: uppercase; text-align: center; text-shadow: 0 4px 40px #000; }
 
 /* Process (pinned) */
@@ -100,7 +112,7 @@ body:has(.landing) .chrome-shape { top: 50%; left: 50%; right: auto; width: min(
 .landing .closing h2 { margin: 0; font-size: clamp(64px, 13vw, 220px); font-weight: 700; line-height: .84; letter-spacing: -.05em; text-transform: uppercase; }
 
 /* Footer */
-.landing .footer { position: relative; background: #000; border-top: 1px solid var(--line); padding: 48px var(--pad-x) 30px; }
+.landing .footer { position: relative; background: rgb(0 0 0 / .6); border-top: 1px solid var(--line); padding: 48px var(--pad-x) 30px; }
 .landing .footer-inner { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 32px; }
 .landing .footer-brand { display: flex; gap: 14px; align-items: flex-start; }
 .landing .footer-name { display: block; font-size: 15px; font-weight: 700; }

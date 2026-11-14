@@ -1,6 +1,6 @@
 import { getProfile } from "@/lib/auth";
 import { admin } from "@/lib/supabase/admin";
-import Landing from "./_landing/Landing";
+import Landing from "../_landing/Landing";
 
 // Public totals for the landing page's stats band. Counts only (no rows), so nothing personal is exposed.
 async function stats() {

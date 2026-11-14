@@ -77,7 +77,7 @@ One `status` field with fixed values:
 ## UX and accessibility
 - A "My clips" page: each clip's status, plus the reason when it is rejected.
 - Labeled form fields, an upload progress bar that screen readers announce, and approve/reject buttons that work from the keyboard.
-- Design: Figma "Clip Desk Revamp" (editorial: pure black, white type, one banana accent #FFE135). Controls are shadcn/ui (`components/ui`, Tailwind v4 without preflight, tokens in `app/globals.css`); don't hand-build controls. Own visuals: `app/chrome-shape.tsx` (ray-marched chrome object that morphs per page) and `app/cursor.tsx` (`data-cursor="Label"` shows a label).
+- Design: Figma "Clip Desk Revamp" (editorial: pure black, white type, one banana accent #FFE135). Controls are shadcn/ui (`components/ui`, Tailwind v4 without preflight, tokens in `app/globals.css`); don't hand-build controls. Own visuals: `app/chrome-shape.tsx` (ray-marched chrome object that morphs per page, not on `/`) and `app/cursor.tsx` (`data-cursor="Label"` shows a label). Landing background: `app/_landing/BananaStage.jsx` renders `public/models/banana.glb` (modelled and baked in Blender, compressed with gltf-transform meshopt + WebP); each section's `data-pose` picks a camera close-up, with `public/assets/banana-*.webp` stills for reduced motion.
 
 ## Dev setup
 - Commit `.env.example`. All other `.env*` files are gitignored.

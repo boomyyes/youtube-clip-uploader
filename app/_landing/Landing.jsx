@@ -7,10 +7,13 @@ import Marquee from "./Marquee";
 import Footer from "./Footer";
 import { CHANNEL_URL } from "./channel";
 import "./landing.css";
+import dynamic from "next/dynamic";
+
+const BananaStage = dynamic(() => import("./BananaStage"), { ssr: false });
 
 // Editorial landing, structured after dozfx.com's homepage (behaviour only, written fresh):
-// 3D hero -> scroll-lit statement -> depth zoom -> pinned numbered process -> marquee -> live stats -> FAQ -> closing.
-// The 3D object is the layout's <ChromeShape /> (fixed behind the transparent hero; later sections cover it).
+// 3D hero -> scroll-lit statement -> depth -> pinned numbered process -> marquee -> live stats -> FAQ -> closing.
+// Behind it all, <BananaStage /> glides between Blender close-ups named by each section's data-pose.
 
 class ErrorBoundary extends Component {
   state = { failed: false };
@@ -58,7 +61,7 @@ function Hero({ cta }) {
     transition: { duration: reduced ? 0.01 : 1.1, ease: EASE, delay: 0.1 + i * 0.12 },
   });
   return (
-    <section className="hero">
+    <section className="hero" data-pose="hero">
       <p className="hero-index"><span>00 / Bananas</span><span>Private clip dropbox</span><span>Reviewed by hand</span></p>
       <h1 className="hero-title">
         <span className="mask"><motion.span className="mask-line" {...line(0)}>Your clip.</motion.span></span>
@@ -88,7 +91,7 @@ function Statement() {
   const text = "One channel, a whole crew of players. You send the clip, we name it, the owner watches every second, and only the good ones go live.";
   const words = text.split(" ");
   return (
-    <section className="statement" ref={ref}>
+    <section className="statement" ref={ref} data-pose="stem">
       <p className="label">01 / What this is</p>
       <p className="statement-text">
         {reduced ? text : words.map((w, i) => (
@@ -99,25 +102,15 @@ function Statement() {
   );
 }
 
-// Pinned: scrolling scrubs the sweating-banana push-in (every frame a keyframe, so seeking is smooth)
-// while the headline fades in over it.
+// Pinned: the camera sits on the gold underside while the headline fades in over it.
 function Depth() {
   const ref = useRef(null);
-  const video = useRef(null);
   const reduced = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  useMotionValueEvent(scrollYProgress, "change", (v) => {
-    const el = video.current;
-    if (!reduced && el?.duration) el.currentTime = v * (el.duration - 0.05);
-  });
-  const titleOpacity = useTransform(scrollYProgress, [0.25, 0.55], reduced ? [1, 1] : [0, 1]);
+  const titleOpacity = useTransform(scrollYProgress, [0.15, 0.45], reduced ? [1, 1] : [0, 1]);
   return (
-    <section className="depth" ref={ref}>
+    <section className="depth" ref={ref} data-pose="under">
       <div className="depth-pin">
-        <video ref={video} muted playsInline preload="auto" aria-hidden="true">
-          <source src="/assets/built-for-clips-1080.mp4" type="video/mp4" media="(min-width: 900px)" />
-          <source src="/assets/built-for-clips-720.mp4" type="video/mp4" />
-        </video>
         <motion.h2 style={{ opacity: titleOpacity }}>Built for <em>clips.</em></motion.h2>
       </div>
     </section>
@@ -140,14 +133,14 @@ function Process() {
   const rail = useTransform(scrollYProgress, [0, 1], ["0%", "100%"]);
   if (reduced) {
     return (
-      <section className="process process-static">
+      <section className="process process-static" data-pose="ridge">
         <p className="label">02 / How it works</p>
         {STEPS.map((s, i) => <div className="process-step" key={s.title}><span className="process-num">0{i + 1}</span><h3>{s.title}</h3><p>{s.body}</p></div>)}
       </section>
     );
   }
   return (
-    <section className="process" ref={ref} style={{ height: `${STEPS.length * 90}vh` }}>
+    <section className="process" ref={ref} data-pose="ridge" style={{ height: `${STEPS.length * 90}vh` }}>
       <div className="process-pin">
         <p className="label">02 / How it works</p>
         <div className="process-body">
@@ -189,7 +182,7 @@ function Stats({ stats }) {
   if (!stats) return null;
   const items = [["Clips on the channel", stats.live], ["Players in the crew", stats.members], ["Games on the list", stats.games]];
   return (
-    <section className="stats">
+    <section className="stats" data-pose="close">
       <p className="label">03 / So far</p>
       <div className="stats-grid">
         {items.map(([l, v]) => <div key={l}><strong><Count to={v} /></strong><span>{l}</span></div>)}
@@ -206,7 +199,7 @@ const FAQ = [
 ];
 function Questions() {
   return (
-    <section className="faq">
+    <section className="faq" data-pose="close">
       <p className="label">04 / Questions</p>
       <div className="faq-list">
         {FAQ.map(([q, a]) => (
@@ -219,7 +212,7 @@ function Questions() {
 
 function Closing({ cta }) {
   return (
-    <section className="closing">
+    <section className="closing" data-pose="hero">
       <h2>Drop the <em>next one.</em></h2>
       <MagneticLink className="mag-primary mag-large" href={cta.href}>{cta.label} →</MagneticLink>
     </section>
@@ -240,6 +233,7 @@ export default function Landing({ cta, stats }) {
   return (
     <ErrorBoundary>
       <div className="landing">
+        <BananaStage />
         <Nav cta={cta} />
         <main>
           <Hero cta={cta} />

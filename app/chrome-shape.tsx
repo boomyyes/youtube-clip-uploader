@@ -150,7 +150,8 @@ export default function ChromeShape() {
   const path = usePathname();
   const reduced = useReducedMotion();
   const webgl = useSyncExternalStore(noop, hasWebGL, () => false);
-  if (path === "/login" || path.startsWith("/privacy") || path.startsWith("/terms")) return null;
+  // The landing page has its own banana showcase (app/_landing/BananaStage.jsx).
+  if (path === "/" || path === "/login" || path.startsWith("/privacy") || path.startsWith("/terms")) return null;
   const target = SHAPE_FOR[path] ?? 0;
   return (
     <div className="chrome-shape" aria-hidden="true">
